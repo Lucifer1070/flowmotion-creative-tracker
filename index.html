@@ -312,8 +312,13 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
   <div class="ideavault-view" id="ideavaultView">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <div><h3 style="font-size:16px;color:#f1f5f9">Idea Vault</h3><p style="font-size:12px;color:var(--muted)">Capture creative ideas before they slip away</p></div>
-      <button class="btn-add" onclick="openIdeaModal()">+ New Idea</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="ideaTypeFilter" class="filter-btn" style="font-size:12px" onchange="renderIdeas()"><option value="">All Types</option><option value="Variation">Variations</option><option value="New Concept">New Concepts</option><option value="Mashup">Mashups</option><option value="Localization">Localization</option></select>
+        <select id="ideaGameFilter" class="filter-btn" style="font-size:12px" onchange="renderIdeas()"><option value="">All Games</option><option>Cooking Crush</option><option>Cooking Chaos</option><option>Cooking Crunch</option><option>Kitchen Craze</option><option>Gym Mania</option><option>My Hotel</option></select>
+        <button class="btn-add" onclick="openIdeaModal()">+ New Idea</button>
+      </div>
     </div>
+    <div id="ideaTypeStats" style="display:flex;gap:12px;margin-bottom:16px"></div>
     <div class="idea-grid" id="ideaGrid"></div>
   </div>
 
@@ -388,6 +393,10 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
     <h3 id="ideaModalTitle">New Creative Idea</h3>
     <input type="hidden" id="ideaEditId">
     <div class="form-group"><label>Idea Title</label><input id="iTitle" placeholder="e.g. Merge puzzle mechanic for playable ad"></div>
+    <div class="form-row">
+      <div class="form-group"><label>Idea Type</label><select id="iIdeaType" onchange="toggleParentAd()"><option value="New Concept">New Concept</option><option value="Variation">Variation</option><option value="Mashup">Mashup</option><option value="Localization">Localization</option></select></div>
+      <div class="form-group" id="parentAdGroup" style="display:none"><label>Parent Ad (Source)</label><select id="iParentAd"><option value="">-- Select Parent Ad --</option></select></div>
+    </div>
     <div class="form-row">
       <div class="form-group"><label>Game</label><select id="iGame"><option value="">-- Select Game --</option><option>Cooking Crush</option><option>Cooking Chaos</option><option>Cooking Crunch</option><option>Kitchen Craze</option><option>Gym Mania</option><option>My Hotel</option><option>All Games</option></select></div>
       <div class="form-group"><label>Ad Category</label><select id="iCategory"><option value="">-- Select Type --</option><option>Video Ad</option><option>Static Ad</option><option>Playable Ad</option></select></div>
@@ -925,15 +934,45 @@ function renderDashboard() {
 }
 
 // ============ IDEA VAULT ============
+var IDEA_TYPE_COLORS = {'Variation':'#f59e0b','New Concept':'#10b981','Mashup':'#a855f7','Localization':'#3b82f6'};
+var IDEA_TYPE_LABELS = {'Variation':'V','New Concept':'NEW','Mashup':'MIX','Localization':'LOC'};
+
 function renderIdeas() {
+  var typeFilter = document.getElementById('ideaTypeFilter') ? document.getElementById('ideaTypeFilter').value : '';
+  var gameFilter = document.getElementById('ideaGameFilter') ? document.getElementById('ideaGameFilter').value : '';
+  var filtered = ideas.filter(function(idea) {
+    if (typeFilter && (idea.ideaType||'New Concept') !== typeFilter) return false;
+    if (gameFilter && idea.game !== gameFilter) return false;
+    return true;
+  });
+
+  // Type stats
+  var stats = {Variation:0,'New Concept':0,Mashup:0,Localization:0};
+  ideas.forEach(function(i){ var t = i.ideaType||'New Concept'; if(stats[t]!==undefined) stats[t]++; });
+  var statsHtml = '';
+  Object.keys(stats).forEach(function(t){
+    var c = IDEA_TYPE_COLORS[t]||'var(--accent)';
+    var active = typeFilter===t ? 'border-color:'+c+';background:'+c+'22' : '';
+    statsHtml += '<div style="padding:8px 16px;border:1px solid var(--border);border-radius:8px;cursor:pointer;font-size:12px;transition:all .2s;'+active+'" onclick="document.getElementById(\'ideaTypeFilter\').value=\''+(typeFilter===t?'':t)+'\';renderIdeas()">';
+    statsHtml += '<span style="font-size:18px;font-weight:700;color:'+c+'">'+stats[t]+'</span> ';
+    statsHtml += '<span style="color:var(--muted)">'+t+'s</span></div>';
+  });
+  document.getElementById('ideaTypeStats').innerHTML = statsHtml;
+
   var html = '';
-  ideas.forEach(function(idea) {
+  filtered.forEach(function(idea) {
     var tags = (idea.tags||[]).map(function(t){return '<span class="idea-tag">'+t+'</span>'}).join('');
     var prioColor = idea.priority === 'high' ? 'var(--red)' : (idea.priority === 'low' ? 'var(--muted)' : 'var(--accent)');
     var dateStr = idea.date ? '<span style="font-size:10px;color:var(--muted)">'+idea.date+'</span>' : '';
     var refLink = idea.ref ? '<a href="'+idea.ref+'" target="_blank" style="font-size:10px;color:var(--accent);text-decoration:none">&#128279; Ref</a>' : '';
-    html += '<div class="idea-card" onclick="openIdeaModal('+idea.id+')">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start"><h4>'+idea.title+'</h4><span style="width:8px;height:8px;border-radius:50%;background:'+prioColor+';flex-shrink:0;margin-top:4px"></span></div>';
+    var ideaType = idea.ideaType || 'New Concept';
+    var typeColor = IDEA_TYPE_COLORS[ideaType] || 'var(--accent)';
+    var typeLabel = IDEA_TYPE_LABELS[ideaType] || 'NEW';
+    var parentInfo = idea.parentAd ? '<div style="font-size:10px;color:var(--muted);margin-top:4px">&#8627; '+idea.parentAd+'</div>' : '';
+    html += '<div class="idea-card" style="border-left:3px solid '+typeColor+'" onclick="openIdeaModal('+idea.id+')">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start">';
+    html += '<div style="flex:1"><h4>'+idea.title+'</h4>'+parentInfo+'</div>';
+    html += '<span style="padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;background:'+typeColor+'22;color:'+typeColor+';flex-shrink:0;margin-left:8px">'+typeLabel+'</span></div>';
     html += '<p>'+idea.desc+'</p>';
     html += '<div class="idea-meta" style="justify-content:space-between;align-items:center">'+tags+' '+dateStr+' '+refLink+'</div>';
     html += '<div style="margin-top:10px"><button style="padding:4px 10px;background:var(--green);color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600" onclick="event.stopPropagation();ideaToTask('+idea.id+')">+ Add to Tasks</button> <button style="padding:4px 10px;background:rgba(239,68,68,.15);color:var(--red);border:none;border-radius:4px;font-size:11px;cursor:pointer" onclick="event.stopPropagation();deleteIdea('+idea.id+')">Delete</button></div>';
@@ -941,6 +980,23 @@ function renderIdeas() {
   });
   html += '<div class="add-idea-card" onclick="openIdeaModal()">+ Add New Idea</div>';
   document.getElementById('ideaGrid').innerHTML = html;
+}
+
+function toggleParentAd() {
+  var type = document.getElementById('iIdeaType').value;
+  var show = (type === 'Variation' || type === 'Mashup');
+  document.getElementById('parentAdGroup').style.display = show ? 'block' : 'none';
+  if (show) populateParentAdDropdown();
+}
+
+function populateParentAdDropdown() {
+  var sel = document.getElementById('iParentAd');
+  var current = sel.value;
+  sel.innerHTML = '<option value="">-- Select Parent Ad --</option>';
+  tasks.filter(function(t){return t.status==='Live'||t.status==='Ready'||(t.d7roas&&parseFloat(t.d7roas)>=1.5)}).forEach(function(t){
+    sel.innerHTML += '<option value="'+t.name+'">['+t.game+'] '+t.name+'</option>';
+  });
+  if (current) sel.value = current;
 }
 
 function openIdeaModal(id) {
@@ -952,35 +1008,45 @@ function openIdeaModal(id) {
     document.getElementById('ideaModalTitle').textContent = 'Edit Idea';
     document.getElementById('ideaEditId').value = idea.id;
     document.getElementById('iTitle').value = idea.title;
+    document.getElementById('iIdeaType').value = idea.ideaType || 'New Concept';
     document.getElementById('iGame').value = idea.game || '';
     document.getElementById('iCategory').value = idea.category || '';
     document.getElementById('iPriority').value = idea.priority || 'normal';
     document.getElementById('iDate').value = idea.date || '';
     document.getElementById('iDesc').value = idea.desc || '';
     document.getElementById('iRef').value = idea.ref || '';
+    toggleParentAd();
+    if (idea.parentAd) document.getElementById('iParentAd').value = idea.parentAd;
   } else {
     document.getElementById('ideaModalTitle').textContent = 'New Creative Idea';
     document.getElementById('ideaEditId').value = '';
     document.getElementById('iTitle').value = '';
+    document.getElementById('iIdeaType').value = 'New Concept';
     document.getElementById('iGame').value = '';
     document.getElementById('iCategory').value = '';
     document.getElementById('iPriority').value = 'normal';
     document.getElementById('iDesc').value = '';
     document.getElementById('iRef').value = '';
+    document.getElementById('iParentAd').value = '';
+    toggleParentAd();
   }
 }
 function closeIdeaModal() { document.getElementById('ideaModalOverlay').classList.remove('show'); }
 
 function getIdeaFromForm() {
+  var ideaType = document.getElementById('iIdeaType').value;
+  var parentAd = (ideaType==='Variation'||ideaType==='Mashup') ? document.getElementById('iParentAd').value : '';
   return {
     title: document.getElementById('iTitle').value,
+    ideaType: ideaType,
+    parentAd: parentAd,
     game: document.getElementById('iGame').value,
     category: document.getElementById('iCategory').value,
     priority: document.getElementById('iPriority').value,
     date: document.getElementById('iDate').value,
     desc: document.getElementById('iDesc').value,
     ref: document.getElementById('iRef').value,
-    tags: [document.getElementById('iGame').value, document.getElementById('iCategory').value].filter(Boolean)
+    tags: [document.getElementById('iGame').value, document.getElementById('iCategory').value, ideaType].filter(Boolean)
   };
 }
 

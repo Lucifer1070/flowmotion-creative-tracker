@@ -323,7 +323,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
       <div><h3 style="font-size:16px;color:#f1f5f9">Ad Factory</h3><p style="font-size:12px;color:var(--muted)">Ads_Factory &mdash; Google Drive root &bull; Path: Game / Hook|Body|CTA|Final Merged</p></div>
       <div style="display:flex;gap:8px">
         <button class="btn-add" style="background:var(--green)" onclick="addAssetModal()">+ Add Asset</button>
-        <button class="btn-add" onclick="connectGDrive()">&#9729; Sync Drive</button>
+        <button class="btn-add" onclick="syncFromDrive()">&#9729; Sync Drive</button>
       </div>
     </div>
     <!-- Asset KPI Row -->
@@ -333,19 +333,24 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
     <!-- Drive Connection Status -->
     <div id="adFactoryStatus" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px"></div>
     <!-- Asset Table -->
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+    <div id="assetLibSection" style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden">
       <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
         <h4 style="font-size:14px;color:#f1f5f9">Asset Library</h4>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:8px;align-items:center">
           <select id="afGameFilter" class="filter-btn" style="font-size:12px" onchange="renderAdFactory()"><option value="">All Games</option><option value="CC">CC - Cooking Crush</option><option value="CK">CK - Cooking Chaos</option><option value="CN">CN - Cooking Crunch</option><option value="KK">KK - Kitchen Craze</option><option value="GM">GM - Gym Mania</option><option value="MH">MH - My Hotel</option></select>
           <select id="afTypeFilter" class="filter-btn" style="font-size:12px" onchange="renderAdFactory()"><option value="">All Types</option><option value="Hook">Hook</option><option value="Body">Body</option><option value="CTA">CTA</option><option value="Final">Final Merged</option></select>
+          <div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden">
+            <button id="afViewList" class="filter-btn" style="border:none;border-radius:0;padding:6px 10px;font-size:14px;background:var(--accent);color:#fff" onclick="setAFView('list')" title="List View">&#9776;</button>
+            <button id="afViewThumb" class="filter-btn" style="border:none;border-radius:0;padding:6px 10px;font-size:14px" onclick="setAFView('thumb')" title="Thumbnail View">&#9871;</button>
+          </div>
         </div>
       </div>
-      <div style="max-height:400px;overflow-y:auto">
+      <div id="afTableWrap" style="max-height:400px;overflow-y:auto">
         <table style="min-width:auto"><thead><tr>
-          <th style="font-size:10px">File Name</th><th style="font-size:10px">Type</th><th style="font-size:10px">Game</th><th style="font-size:10px">Hook</th><th style="font-size:10px">Body</th><th style="font-size:10px">CTA</th><th style="font-size:10px">Network</th><th style="font-size:10px">Ratio</th><th style="font-size:10px">Date</th><th style="font-size:10px">Action</th>
+          <th style="font-size:10px">File Name</th><th style="font-size:10px">Type</th><th style="font-size:10px">Game</th><th style="font-size:10px">Hook</th><th style="font-size:10px">Body</th><th style="font-size:10px">CTA</th><th style="font-size:10px">Date</th>
         </tr></thead><tbody id="afTableBody"></tbody></table>
       </div>
+      <div id="afThumbGrid" style="display:none;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;padding:16px;max-height:500px;overflow-y:auto"></div>
     </div>
   </div>
 </div>
@@ -1057,7 +1062,10 @@ function deleteIdea(ideaId) {
 // ============ AD FACTORY ============
 var GDRIVE_KEY = 'fm_gdrive_config';
 var AF_KEY = 'fm_ad_factory';
+var DRIVE_SYNC_KEY = 'fm_drive_sync_data';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzST3WDxeP1qq_VVonPx8IpbUl34h0WRJe5RBs60v0DBmDtgGYF9wuhu0DVW-9Phw/exec';
 var adAssets = JSON.parse(localStorage.getItem(AF_KEY)) || [];
+var driveSyncData = JSON.parse(localStorage.getItem(DRIVE_SYNC_KEY)||'null');
 var GAME_CODES = {'CC':'Cooking Crush','CK':'Cooking Chaos','CN':'Cooking Crunch','KK':'Kitchen Craze','GM':'Gym Mania','MH':'My Hotel'};
 var GAME_COLORS = {'CC':'#f59e0b','CK':'#ef4444','CN':'#a855f7','KK':'#10b981','GM':'#ec4899','MH':'#3b82f6'};
 var FOLDER_COLORS = {'Hook':'#ef4444','Body':'#f59e0b','CTA':'#10b981','Final':'#3b82f6'};
@@ -1065,15 +1073,76 @@ var FOLDER_LABELS = {'Hook':'Hook','Body':'Body','CTA':'CTA','Final':'Final Merg
 
 function saveAF() { localStorage.setItem(AF_KEY, JSON.stringify(adAssets)); }
 
+function syncFromDrive(silent) {
+  var statusEl = document.getElementById('adFactoryStatus');
+  if (!silent && statusEl) {
+    statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:12px"><span style="color:var(--accent);font-size:16px">&#8987;</span><span style="color:var(--accent);font-size:13px;font-weight:600">Syncing from Google Drive...</span></div>';
+  }
+  fetch(APPS_SCRIPT_URL)
+    .then(function(r){return r.json()})
+    .then(function(data){
+      if(data.success){
+        driveSyncData = data;
+        localStorage.setItem(DRIVE_SYNC_KEY, JSON.stringify(data));
+        // Merge drive files into adAssets
+        var driveAssets = [];
+        var games = data.games || {};
+        Object.keys(games).forEach(function(gc){
+          var g = games[gc];
+          ['Hook','Body','CTA','Final'].forEach(function(cat){
+            var files = (g.files && g.files[cat]) || [];
+            files.forEach(function(f){
+              driveAssets.push({
+                id: 'drive_'+gc+'_'+cat+'_'+f.name,
+                fileName: f.name,
+                game: gc,
+                folder: cat,
+                hook: cat==='Hook'?f.name.replace(/\.\w+$/,''):'',
+                meat: cat==='Body'?f.name.replace(/\.\w+$/,''):'',
+                cta: cat==='CTA'?f.name.replace(/\.\w+$/,''):'',
+                network: '',
+                ratio: '',
+                driveId: f.id || '',
+                date: f.date || new Date().toISOString().slice(0,10),
+                source: 'drive'
+              });
+            });
+          });
+        });
+        // Replace drive-sourced assets, keep manual ones
+        adAssets = adAssets.filter(function(a){return a.source!=='drive'}).concat(driveAssets);
+        saveAF();
+        // Update config sync time
+        var config = JSON.parse(localStorage.getItem(GDRIVE_KEY)||'null');
+        if(config){
+          config.syncedAt = new Date().toISOString();
+          localStorage.setItem(GDRIVE_KEY, JSON.stringify(config));
+        }
+        renderAdFactory();
+      }
+    })
+    .catch(function(err){
+      console.error('Drive sync error:', err);
+      if(!silent && statusEl){
+        statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:12px"><span style="color:var(--red);font-size:16px">&#10007;</span><span style="color:var(--red);font-size:13px">Sync failed: '+err.message+'</span><button style="padding:5px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer;margin-left:auto" onclick="syncFromDrive()">Retry</button></div>';
+      }
+    });
+}
+
 function connectGDrive() {
   var folder = prompt('Enter your Google Drive Ads_Factory folder URL:\n(e.g. https://drive.google.com/drive/folders/xxx)');
   if (!folder) return;
   localStorage.setItem(GDRIVE_KEY, JSON.stringify({folder:folder,connected:true,syncedAt:new Date().toISOString()}));
   renderAdFactory();
+  syncFromDrive();
 }
 function disconnectGDrive() {
   if (!confirm('Disconnect Google Drive?')) return;
   localStorage.removeItem(GDRIVE_KEY);
+  localStorage.removeItem(DRIVE_SYNC_KEY);
+  driveSyncData = null;
+  adAssets = adAssets.filter(function(a){return a.source!=='drive'});
+  saveAF();
   renderAdFactory();
 }
 
@@ -1160,6 +1229,32 @@ function buildFileName() {
   return [g,h,m,c,n,r,d].filter(Boolean).join('_')+'.mp4';
 }
 
+function setAFView(mode) {
+  var listBtn = document.getElementById('afViewList');
+  var thumbBtn = document.getElementById('afViewThumb');
+  if (mode==='list') {
+    listBtn.style.background='var(--accent)';listBtn.style.color='#fff';
+    thumbBtn.style.background='';thumbBtn.style.color='';
+  } else {
+    thumbBtn.style.background='var(--accent)';thumbBtn.style.color='#fff';
+    listBtn.style.background='';listBtn.style.color='';
+  }
+  var sel = document.getElementById('afViewMode');
+  if (!sel) {
+    sel = document.createElement('input');sel.type='hidden';sel.id='afViewMode';
+    document.body.appendChild(sel);
+  }
+  sel.value = mode;
+  renderAdFactory();
+}
+
+function filterAssetsByGame(gc) {
+  document.getElementById('afGameFilter').value = gc;
+  renderAdFactory();
+  var assetLib = document.getElementById('assetLibSection');
+  if (assetLib) assetLib.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 function deleteAsset(id) {
   adAssets = adAssets.filter(function(a){return a.id!==id});
   saveAF(); renderAdFactory();
@@ -1207,7 +1302,7 @@ function renderAdFactory() {
     var bodyCount = gameAssets.filter(function(a){return a.folder==='Body'}).length;
     var ctaCount = gameAssets.filter(function(a){return a.folder==='CTA'}).length;
     var finalCount = gameAssets.filter(function(a){return a.folder==='Final'}).length;
-    folderHtml += '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden">';
+    folderHtml += '<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;transition:all .2s" onclick="filterAssetsByGame(\''+gc+'\')" onmouseover="this.style.borderColor=\''+gColor+'\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.transform=\'none\'">';
     folderHtml += '<div style="background:'+gColor+'22;padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">';
     folderHtml += '<span style="width:10px;height:10px;border-radius:50%;background:'+gColor+'"></span>';
     folderHtml += '<div><div style="font-size:13px;font-weight:600;color:'+gColor+'">'+gameName+'</div>';
@@ -1224,7 +1319,7 @@ function renderAdFactory() {
   // Drive status
   var statusEl = document.getElementById('adFactoryStatus');
   if (config && config.connected) {
-    statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:12px"><span style="color:var(--green);font-size:16px">&#10003;</span><div style="flex:1"><span style="color:var(--green);font-weight:600;font-size:13px">Google Drive Connected</span> <span style="color:var(--muted);font-size:12px">&bull; '+config.folder+'</span><div style="color:var(--muted);font-size:11px">Last sync: '+new Date(config.syncedAt).toLocaleString()+'</div></div><button style="padding:5px 12px;background:rgba(239,68,68,.15);color:var(--red);border:none;border-radius:6px;font-size:11px;cursor:pointer" onclick="disconnectGDrive()">Disconnect</button></div>';
+    statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:12px"><span style="color:var(--green);font-size:16px">&#10003;</span><div style="flex:1"><span style="color:var(--green);font-weight:600;font-size:13px">Google Drive Connected</span> <span style="color:var(--muted);font-size:12px">&bull; '+config.folder+'</span><div style="color:var(--muted);font-size:11px">Last sync: '+new Date(config.syncedAt).toLocaleString()+'</div></div><button style="padding:5px 12px;background:rgba(59,130,246,.15);color:var(--accent);border:none;border-radius:6px;font-size:11px;cursor:pointer;margin-right:8px" onclick="syncFromDrive()">&#8635; Sync Now</button><button style="padding:5px 12px;background:rgba(239,68,68,.15);color:var(--red);border:none;border-radius:6px;font-size:11px;cursor:pointer" onclick="disconnectGDrive()">Disconnect</button></div>';
   } else {
     statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:12px"><span style="color:var(--muted);font-size:16px">&#9675;</span><span style="color:var(--muted);font-size:13px">Google Drive not connected</span><button style="padding:5px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:11px;cursor:pointer" onclick="connectGDrive()">Connect</button></div>';
   }
@@ -1239,31 +1334,74 @@ function renderAdFactory() {
   });
   var tHtml = '';
   if (filtered.length === 0) {
-    tHtml = '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted)">No assets yet. Click "+ Add Asset" or paste filenames to build your library.</td></tr>';
+    tHtml = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--muted)">No assets yet. Click "+ Add Asset" or paste filenames to build your library.</td></tr>';
   }
   filtered.sort(function(a,b){return new Date(b.date)-new Date(a.date)});
   filtered.forEach(function(a) {
     var fc = FOLDER_COLORS[a.folder] || '#64748b';
-    tHtml += '<tr>';
-    tHtml += '<td style="font-size:12px;max-width:250px;overflow:hidden;text-overflow:ellipsis" title="'+a.fileName+'">'+a.fileName+'</td>';
+    var clickAttr = a.driveId ? ' style="cursor:pointer" onclick="previewDriveFile(\''+a.driveId+'\',\''+a.fileName.replace(/'/g,"\\'")+'\')"' : '';
+    tHtml += '<tr'+clickAttr+'>';
+    tHtml += '<td style="font-size:12px;max-width:250px;overflow:hidden;text-overflow:ellipsis" title="'+a.fileName+'">'+(a.driveId?'<span style="color:var(--accent);margin-right:4px">&#9654;</span>':'')+a.fileName+'</td>';
     tHtml += '<td><span style="padding:2px 8px;border-radius:4px;font-size:10px;background:'+fc+'22;color:'+fc+';font-weight:600">'+a.folder+'</span></td>';
     tHtml += '<td style="font-size:12px">'+(GAME_CODES[a.game]||a.game)+'</td>';
     tHtml += '<td style="font-size:12px;color:var(--red)">'+(a.hook||'—')+'</td>';
     tHtml += '<td style="font-size:12px;color:var(--green)">'+(a.meat||'—')+'</td>';
     tHtml += '<td style="font-size:12px;color:var(--orange)">'+(a.cta||'—')+'</td>';
-    tHtml += '<td style="font-size:11px">'+a.network+'</td>';
-    tHtml += '<td style="font-size:11px;color:var(--muted)">'+a.ratio+'</td>';
     tHtml += '<td style="font-size:11px;color:var(--muted)">'+a.date+'</td>';
-    tHtml += '<td><span style="color:var(--red);cursor:pointer;font-size:12px" onclick="deleteAsset('+a.id+')" title="Delete">&#128465;</span></td>';
     tHtml += '</tr>';
   });
+
+  // Thumbnail grid view
+  var thumbHtml = '';
+  filtered.forEach(function(a) {
+    if (!a.driveId) return;
+    var thumbUrl = 'https://drive.google.com/thumbnail?id='+a.driveId+'&sz=w320';
+    var fc = FOLDER_COLORS[a.folder] || '#64748b';
+    thumbHtml += '<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;transition:all .2s" onclick="previewDriveFile(\''+a.driveId+'\',\''+a.fileName.replace(/'/g,"\\'")+'\')" onmouseover="this.style.borderColor=\'var(--accent)\';this.style.transform=\'translateY(-2px)\'" onmouseout="this.style.borderColor=\'var(--border)\';this.style.transform=\'none\'">';
+    thumbHtml += '<div style="width:100%;height:140px;background:#0a0e1a;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative">';
+    thumbHtml += '<img src="'+thumbUrl+'" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">';
+    thumbHtml += '<div style="display:none;align-items:center;justify-content:center;width:100%;height:100%;color:var(--muted);font-size:30px">&#127909;</div>';
+    thumbHtml += '<div style="position:absolute;bottom:6px;right:6px;padding:2px 6px;border-radius:4px;font-size:9px;background:'+fc+'cc;color:#fff;font-weight:600">'+a.folder+'</div>';
+    thumbHtml += '</div>';
+    thumbHtml += '<div style="padding:8px 10px">';
+    thumbHtml += '<div style="font-size:11px;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="'+a.fileName+'">'+a.fileName+'</div>';
+    thumbHtml += '<div style="font-size:10px;color:var(--muted);margin-top:2px">'+(GAME_CODES[a.game]||a.game)+' &bull; '+a.date+'</div>';
+    thumbHtml += '</div></div>';
+  });
+
+  var viewMode = document.getElementById('afViewMode') ? document.getElementById('afViewMode').value : 'list';
   document.getElementById('afTableBody').innerHTML = tHtml;
+  var thumbContainer = document.getElementById('afThumbGrid');
+  if (thumbContainer) {
+    thumbContainer.innerHTML = thumbHtml || '<div style="padding:30px;text-align:center;color:var(--muted);grid-column:1/-1">No Drive files with thumbnails. Sync Drive to load previews.</div>';
+  }
+  var tableEl = document.getElementById('afTableWrap');
+  if (tableEl && thumbContainer) {
+    tableEl.style.display = viewMode==='list' ? 'block' : 'none';
+    thumbContainer.style.display = viewMode==='thumb' ? 'grid' : 'none';
+  }
+}
+
+function previewDriveFile(fileId, fileName) {
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.75);z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.onclick = function(e){ if(e.target===overlay) document.body.removeChild(overlay); };
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--card);border:1px solid var(--border);border-radius:12px;width:800px;max-width:95vw;max-height:90vh;overflow:hidden;display:flex;flex-direction:column';
+  modal.innerHTML = '<div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center"><div style="font-size:14px;font-weight:600;color:#f1f5f9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">'+fileName+'</div><span style="cursor:pointer;color:var(--muted);font-size:20px;padding:4px 8px" onclick="this.closest(\'div[style*=position\\:fixed]\').remove()">&times;</span></div><div style="flex:1;min-height:0"><iframe src="https://drive.google.com/file/d/'+fileId+'/preview" style="width:100%;height:450px;border:none" allow="autoplay"></iframe></div><div style="padding:10px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end"><a href="https://drive.google.com/file/d/'+fileId+'/view" target="_blank" style="padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;text-decoration:none;cursor:pointer">Open in Drive</a></div>';
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
 }
 
 // Close asset modal on overlay click
 document.addEventListener('DOMContentLoaded', function() {
   var amo = document.getElementById('assetModalOverlay');
   if (amo) amo.addEventListener('click', function(e) { if (e.target===this) closeAssetModal(); });
+  // Auto-sync from Drive on page load if connected
+  var gdConfig = JSON.parse(localStorage.getItem(GDRIVE_KEY)||'null');
+  if (gdConfig && gdConfig.connected) {
+    setTimeout(function(){ syncFromDrive(true); }, 1500);
+  }
 });
 
 // ============ SIDE PANEL ============

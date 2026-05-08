@@ -262,8 +262,9 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
     </div>
     <div class="toolbar">
       <input class="search-box" id="searchBox" placeholder="Search by ID or creative name...">
+      <select class="filter-btn" id="creativeTypeFilter" onchange="populateFilters();renderAll()"><option value="">Creative Type</option><option value="New Concept">New Concept</option><option value="Variation">Variation</option><option value="Mashup">Mashup</option><option value="Localization">Localization</option></select>
       <select class="filter-btn" id="gameFilter"><option value="">All Games</option></select>
-      <select class="filter-btn" id="statusFilter"><option value="">All Statuses</option></select>
+      <select class="filter-btn" id="statusFilter"><option value="">Status</option></select>
       <button class="btn-add" onclick="openModal()">+ Add Task</button>
     </div>
     <div class="table-container">
@@ -368,6 +369,10 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
     <div class="form-row">
       <div class="form-group"><label>Game</label><select id="fGame"><option>Cooking Crush</option><option>Cooking Chaos</option><option>Cooking Crunch</option><option>Kitchen Craze</option><option>Gym Mania</option><option>My Hotel</option></select></div>
       <div class="form-group"><label>Type</label><select id="fType"><option>Playable Ad</option><option>Video Ad</option><option>Static Ad</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Creative Type</label><select id="fCreativeType"><option value="New Concept">New Concept</option><option value="Variation">Variation</option><option value="Mashup">Mashup</option><option value="Localization">Localization</option></select></div>
+      <div class="form-group"><label>Parent Ad (if Variation/Mashup)</label><select id="fParentAd"><option value="">-- None --</option></select></div>
     </div>
     <div class="form-group"><label>Creative Name</label><input id="fName" placeholder="e.g. Alpha_Static_Banner_v1"></div>
     <div class="form-row">
@@ -559,7 +564,7 @@ function populateFilters() {
   });
   var statuses = ['Brief','Design','Ready','Live','On Hold','Stopped'];
   var sf = document.getElementById('statusFilter');
-  sf.innerHTML = '<option value="">All Statuses</option>';
+  sf.innerHTML = '<option value="">Status</option>';
   statuses.forEach(function(s) {
     var o = document.createElement('option'); o.value = s; o.textContent = s; sf.appendChild(o);
   });
@@ -644,6 +649,7 @@ function updateSubtitle() {
 function getFiltered() {
   var gf = document.getElementById('gameFilter').value;
   var sf = document.getElementById('statusFilter').value;
+  var ctf = document.getElementById('creativeTypeFilter') ? document.getElementById('creativeTypeFilter').value : '';
   var list = tasks.filter(function(t) {
     if (currentFilter === 'archive') return t.archived;
     if (t.archived) return false;
@@ -657,6 +663,7 @@ function getFiltered() {
     if (currentMyOnly && t.assigned.indexOf('Neeraj') === -1) return false;
     if (gf && t.game !== gf) return false;
     if (sf && t.status !== sf) return false;
+    if (ctf && (t.creativeType||'') !== ctf) return false;
     if (searchQuery && t.id.toLowerCase().indexOf(searchQuery) === -1 && t.name.toLowerCase().indexOf(searchQuery) === -1) return false;
     return true;
   });
@@ -777,6 +784,16 @@ function removeFromModalTeam(name) {
   modalAssigned = modalAssigned.filter(function(n){return n!==name});
   renderModalTeam();
 }
+function populateTaskParentAd() {
+  var sel = document.getElementById('fParentAd');
+  var current = sel.value;
+  sel.innerHTML = '<option value="">-- None --</option>';
+  tasks.filter(function(t){return t.status==='Live'||t.status==='Ready'||(t.d7roas&&parseFloat(t.d7roas)>=1.5)}).forEach(function(t){
+    sel.innerHTML += '<option value="'+t.name+'">['+t.game+'] '+t.name+'</option>';
+  });
+  if (current) sel.value = current;
+}
+
 function openModal(id) {
   document.getElementById('modalOverlay').classList.add('show');
   if (id) {
@@ -785,6 +802,9 @@ function openModal(id) {
     document.getElementById('editId').value = t.id;
     document.getElementById('fGame').value = t.game;
     document.getElementById('fType').value = t.type;
+    document.getElementById('fCreativeType').value = t.creativeType || 'New Concept';
+    populateTaskParentAd();
+    document.getElementById('fParentAd').value = t.parentAd || '';
     document.getElementById('fName').value = t.name;
     document.getElementById('fStatus').value = t.status;
     document.getElementById('fPriority').value = t.priority;
@@ -796,6 +816,9 @@ function openModal(id) {
   } else {
     document.getElementById('modalTitle').textContent = 'Add New Creative Task';
     document.getElementById('editId').value = '';
+    document.getElementById('fCreativeType').value = 'New Concept';
+    document.getElementById('fParentAd').value = '';
+    populateTaskParentAd();
     document.getElementById('fName').value = '';
     document.getElementById('fRoas').value = '';
     document.getElementById('fSpend').value = '';
@@ -814,6 +837,8 @@ function saveTask() {
   var obj = {
     game: document.getElementById('fGame').value,
     type: document.getElementById('fType').value,
+    creativeType: document.getElementById('fCreativeType').value,
+    parentAd: document.getElementById('fParentAd').value,
     name: document.getElementById('fName').value,
     status: document.getElementById('fStatus').value,
     priority: parseInt(document.getElementById('fPriority').value),

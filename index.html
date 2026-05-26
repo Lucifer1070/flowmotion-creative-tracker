@@ -174,8 +174,9 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
 .sp-perf-box .pf-unit{font-size:11px;color:var(--muted)}
 .sp-summary-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
 .sp-chip{padding:4px 10px;border-radius:4px;font-size:11px;background:rgba(59,130,246,.1);color:var(--accent)}
-.sp-desc textarea{width:100%;min-height:80px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;padding:10px;resize:vertical;outline:none;line-height:1.5}
-.sp-desc textarea:focus{border-color:var(--accent)}
+.sp-desc [contenteditable]:empty::before{content:attr(placeholder);color:var(--muted)}
+.sp-desc [contenteditable]:focus{border-color:var(--accent)}
+.sp-desc [contenteditable] h3{font-size:15px;color:#f1f5f9;margin:6px 0 4px}
 .sp-desc-actions{display:flex;gap:8px;margin-top:8px}
 .sp-desc-actions button{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none}
 .btn-sp-save{background:var(--green);color:#fff}
@@ -210,6 +211,21 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
 .assign-popup .ap-add{display:flex;gap:6px;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)}
 .assign-popup .ap-add input{flex:1;padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;outline:none}
 .assign-popup .ap-add button{padding:4px 8px;background:var(--accent);color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer}
+/* Spin animation */
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+/* Calendar */
+.cal-day{padding:6px 2px;border-radius:6px;font-size:12px;cursor:pointer;transition:all .15s;color:var(--text);position:relative}
+.cal-day:hover{background:rgba(59,130,246,.15)}
+.cal-day.other{color:var(--muted);opacity:.4}
+.cal-day.today{font-weight:700;color:var(--accent)}
+.cal-day.today::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--accent)}
+.cal-day.has-task::before{content:'';position:absolute;top:3px;right:3px;width:5px;height:5px;border-radius:50%;background:var(--green)}
+.cal-day.selected{background:var(--accent);color:#fff;font-weight:600}
+.cal-day.in-range{background:rgba(59,130,246,.2)}
+.cal-day.range-start{background:var(--accent);color:#fff;border-radius:6px 0 0 6px}
+.cal-day.range-end{background:var(--accent);color:#fff;border-radius:0 6px 6px 0}
+.cal-day.range-start.range-end{border-radius:6px}
+.cal-hdr{font-size:10px;color:var(--muted);font-weight:600;padding:4px 0;text-transform:uppercase}
 @media(max-width:900px){.sidebar{width:60px}.sidebar-brand,.nav-label,.status-summary h4,.status-item span:not(.count){display:none}.nav-item{justify-content:center;padding:12px}.nav-item .badge{display:none}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
@@ -245,7 +261,15 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
     <div class="topbar-left"><h2 id="viewTitle">All Tasks</h2><p id="viewSubtitle">10 creatives - Flowmotion Entertainment</p></div>
     <div class="topbar-right">
       <div class="date-display" id="dateDisplay"></div>
-      <div class="avatar">FM</div>
+      <div style="position:relative">
+        <div class="avatar" id="userAvatar" style="cursor:pointer" onclick="toggleUserMenu()" title="Switch user"></div>
+        <div id="userMenu" style="display:none;position:absolute;top:40px;right:0;background:var(--card);border:1px solid var(--border);border-radius:8px;min-width:200px;padding:6px 0;box-shadow:0 8px 24px rgba(0,0,0,.4);z-index:100">
+          <div style="padding:8px 14px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border)">Switch User</div>
+          <div id="userMenuList"></div>
+          <div style="border-top:1px solid var(--border);padding:8px 14px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Team Management</div>
+          <div id="teamMgmtSection"></div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -262,8 +286,25 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
     </div>
     <div class="toolbar">
       <input class="search-box" id="searchBox" placeholder="Search by ID or creative name...">
+      <div style="position:relative;display:inline-block">
+        <button class="filter-btn" id="calBtn" onclick="toggleCalendar()" title="Filter by date" style="display:flex;align-items:center;gap:4px;cursor:pointer"><span style="font-size:15px">&#128197;</span><span id="calLabel" style="font-size:12px"></span></button>
+        <div id="calPopup" style="display:none;position:absolute;top:40px;left:0;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;z-index:200;box-shadow:0 12px 32px rgba(0,0,0,.5);width:300px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <button onclick="calNav(-1)" style="background:none;border:none;color:var(--text);font-size:18px;cursor:pointer;padding:4px 8px">&lt;</button>
+            <span id="calMonthYear" style="font-size:14px;font-weight:600;color:#f1f5f9"></span>
+            <button onclick="calNav(1)" style="background:none;border:none;color:var(--text);font-size:18px;cursor:pointer;padding:4px 8px">&gt;</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;margin-bottom:4px" id="calDayHeaders"></div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center" id="calGrid"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+            <span id="calRangeLabel" style="font-size:11px;color:var(--muted)">Click a date or select range</span>
+            <button onclick="clearCalFilter()" style="padding:4px 10px;background:rgba(239,68,68,.15);color:var(--red);border:none;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600">Clear</button>
+          </div>
+        </div>
+      </div>
       <select class="filter-btn" id="creativeTypeFilter" onchange="populateFilters();renderAll()"><option value="">Creative Type</option><option value="New Concept">New Concept</option><option value="Variation">Variation</option><option value="Mashup">Mashup</option><option value="Localization">Localization</option></select>
       <select class="filter-btn" id="gameFilter"><option value="">All Games</option></select>
+      <select class="filter-btn" id="networkFilter"><option value="">Network</option><option value="Facebook">Facebook</option><option value="Google Ads">Google Ads</option><option value="TikTok">TikTok</option><option value="Unity">Unity</option><option value="AppLovin">AppLovin</option><option value="IronSource">IronSource</option><option value="Mintegral">Mintegral</option><option value="Apple">Apple</option></select>
       <select class="filter-btn" id="statusFilter"><option value="">Status</option></select>
       <button class="btn-add" onclick="openModal()">+ Add Task</button>
     </div>
@@ -273,6 +314,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
           <th data-sort="id">ID</th>
           <th data-sort="game">Game</th>
           <th data-sort="name">Creative Name</th>
+          <th data-sort="created">Date</th>
           <th data-sort="type">Type</th>
           <th data-sort="status">Status</th>
           <th>Priority</th>
@@ -371,23 +413,45 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
       <div class="form-group"><label>Type</label><select id="fType"><option>Playable Ad</option><option>Video Ad</option><option>Static Ad</option></select></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Creative Type</label><select id="fCreativeType"><option value="New Concept">New Concept</option><option value="Variation">Variation</option><option value="Mashup">Mashup</option><option value="Localization">Localization</option></select></div>
+      <div class="form-group"><label>Creative Type</label><select id="fCreativeType" onchange="toggleTaskVarFields()"><option value="New Concept">New Concept</option><option value="Variation">Variation</option><option value="Mashup">Mashup</option><option value="Localization">Localization</option></select></div>
       <div class="form-group"><label>Parent Ad (if Variation/Mashup)</label><select id="fParentAd"><option value="">-- None --</option></select></div>
+    </div>
+    <div class="form-row" id="varTypeRow" style="display:none">
+      <div class="form-group"><label>Variation Part</label><select id="fVarPart"><option value="Hook">Hook</option><option value="Body">Body</option><option value="CTA">CTA</option></select></div>
+      <div class="form-group"></div>
     </div>
     <div class="form-group"><label>Creative Name</label><input id="fName" placeholder="e.g. Alpha_Static_Banner_v1"></div>
     <div class="form-row">
       <div class="form-group"><label>Status</label><select id="fStatus"><option>Brief</option><option>Design</option><option>Ready</option><option>Live</option><option>On Hold</option><option>Stopped</option></select></div>
       <div class="form-group"><label>Priority</label><select id="fPriority"><option value="3">High (3)</option><option value="2">Medium (2)</option><option value="1">Low (1)</option></select></div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>Assigned To</label><div class="team-mgmt"><div class="team-list" id="fTeamList"></div><div class="team-add-row"><input id="fTeamInput" placeholder="Add name..." onkeydown="if(event.key==='Enter'){event.preventDefault();addTeamMember()}"><button type="button" onclick="addTeamMember()">+</button></div></div></div>
-      <div class="form-group"><label>D7 ROAS</label><input id="fRoas" type="number" step="0.1" placeholder="0.0"></div>
+    <div class="form-group"><label>Assigned To</label><div class="team-mgmt"><div class="team-list" id="fTeamList"></div><div class="team-add-row"><input id="fTeamInput" placeholder="Add name..." onkeydown="if(event.key==='Enter'){event.preventDefault();addTeamMember()}"><button type="button" onclick="addTeamMember()">+</button></div></div></div>
+    <div class="form-group"><label>Description</label>
+      <div id="fNotesToolbar" onmousedown="event.preventDefault()" style="display:flex;gap:4px;margin-bottom:0;padding:4px 6px;background:var(--bg);border:1px solid var(--border);border-bottom:none;border-radius:6px 6px 0 0;flex-wrap:wrap">
+        <button type="button" onclick="document.getElementById('fNotes').focus();document.execCommand('bold')" title="Bold" style="padding:3px 7px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;font-size:12px;font-weight:700">B</button>
+        <button type="button" onclick="document.getElementById('fNotes').focus();document.execCommand('formatBlock',false,'H3')" title="Headline" style="padding:3px 7px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;font-size:12px;font-weight:600">H</button>
+        <div style="position:relative;display:inline-block">
+          <button type="button" onclick="var p=document.getElementById('fNotesColorPicker');p.style.display=p.style.display==='grid'?'none':'grid'" title="Text Color" style="padding:3px 7px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--orange);cursor:pointer;font-size:12px;font-weight:700">A</button>
+          <div id="fNotesColorPicker" onmousedown="event.preventDefault()" style="display:none;position:absolute;top:100%;left:0;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px;z-index:1060;grid-template-columns:repeat(5,1fr);gap:4px;box-shadow:0 4px 12px rgba(0,0,0,.3)">
+            <span style="width:22px;height:22px;border-radius:4px;background:#ef4444;cursor:pointer" onclick="document.getElementById('fNotes').focus();document.execCommand('foreColor',false,'#ef4444');document.getElementById('fNotesColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#f59e0b;cursor:pointer" onclick="document.getElementById('fNotes').focus();document.execCommand('foreColor',false,'#f59e0b');document.getElementById('fNotesColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#10b981;cursor:pointer" onclick="document.getElementById('fNotes').focus();document.execCommand('foreColor',false,'#10b981');document.getElementById('fNotesColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#3b82f6;cursor:pointer" onclick="document.getElementById('fNotes').focus();document.execCommand('foreColor',false,'#3b82f6');document.getElementById('fNotesColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#a855f7;cursor:pointer" onclick="document.getElementById('fNotes').focus();document.execCommand('foreColor',false,'#a855f7');document.getElementById('fNotesColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#ec4899;cursor:pointer" onclick="document.getElementById('fNotes').focus();document.execCommand('foreColor',false,'#ec4899');document.getElementById('fNotesColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#e2e8f0;cursor:pointer" onclick="document.getElementById('fNotes').focus();document.execCommand('foreColor',false,'#e2e8f0');document.getElementById('fNotesColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#64748b;cursor:pointer" onclick="document.getElementById('fNotes').focus();document.execCommand('foreColor',false,'#64748b');document.getElementById('fNotesColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#fbbf24;cursor:pointer" onclick="document.getElementById('fNotes').focus();document.execCommand('foreColor',false,'#fbbf24');document.getElementById('fNotesColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#f1f5f9;cursor:pointer" onclick="document.getElementById('fNotes').focus();document.execCommand('foreColor',false,'#f1f5f9');document.getElementById('fNotesColorPicker').style.display='none'"></span>
+          </div>
+        </div>
+        <button type="button" onclick="document.getElementById('fNotes').focus();document.execCommand('hiliteColor',false,'rgba(245,158,11,0.3)')" title="Highlight" style="padding:3px 7px;background:rgba(245,158,11,.2);border:1px solid var(--border);border-radius:4px;color:var(--orange);cursor:pointer;font-size:11px;font-weight:600">Hi</button>
+        <button type="button" onclick="document.getElementById('fNotes').focus();document.execCommand('removeFormat')" title="Clear" style="padding:3px 7px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px">&#10005;</button>
+        <span style="width:1px;background:var(--border);margin:0 3px;align-self:stretch"></span>
+        <button type="button" id="modalRefineBtn" onclick="refineDescription('modal')" title="AI Refine" style="padding:3px 10px;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;border-radius:4px;color:#fff;cursor:pointer;font-size:11px;font-weight:600;display:flex;align-items:center;gap:4px">&#10024; Refine</button>
+      </div>
+      <div id="fNotes" contenteditable="true" style="width:100%;min-height:120px;background:var(--bg);border:1px solid var(--border);border-radius:0 0 6px 6px;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;padding:10px;outline:none;line-height:1.6;overflow-y:auto;max-height:200px" placeholder="Describe the creative concept, variation details..."></div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>Spend</label><input id="fSpend" type="number" placeholder="0"></div>
-      <div class="form-group"><label>CPI</label><input id="fCpi" type="number" step="0.01" placeholder="0.00"></div>
-    </div>
-    <div class="form-group"><label>Notes</label><textarea id="fNotes" rows="2" placeholder="Optional notes..."></textarea></div>
     <div class="modal-actions"><button class="btn-cancel" onclick="closeModal()">Cancel</button><button class="btn-save" onclick="saveTask()">Save Task</button></div>
   </div>
 </div>
@@ -437,7 +501,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
         <div class="form-group"><label>CTA #</label><input id="aCta" placeholder="C02" style="font-size:12px"></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label>Network</label><select id="aNetwork"><option>Facebook</option><option>Google Ads</option><option>TikTok</option><option>Unity</option><option>AppLovin</option><option>IronSource</option><option>Mintegral</option><option>Multi-Platform</option></select></div>
+        <div class="form-group"><label>Network</label><select id="aNetwork"><option>Facebook</option><option>Google Ads</option><option>TikTok</option><option>Unity</option><option>AppLovin</option><option>IronSource</option><option>Mintegral</option><option>Apple</option></select></div>
         <div class="form-group"><label>Aspect Ratio</label><select id="aRatio"><option>9x16</option><option>16x9</option><option>1x1</option><option>4x5</option></select></div>
       </div>
       <div class="form-group"><label>Date</label><input id="aDate" type="date"></div>
@@ -458,12 +522,26 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
   </div>
   <div class="sp-body">
     <div class="sp-section"><h4>Details</h4>
-      <div class="sp-detail-row"><span class="label">Game</span><span class="value" id="spDetGame"></span></div>
-      <div class="sp-detail-row"><span class="label">Campaign</span><span class="value"><select id="spCampaign" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:12px"><option>Installer</option><option>Purchaser</option><option>In-App Purchase</option><option>Retargeting</option><option>Re-Engagement</option><option>Brand Awareness</option><option>App Install</option><option>CPI</option><option>CPE (Cost Per Engagement)</option><option>ROAS Optimized</option><option>Value Optimized</option><option>Lookalike</option><option>Broad</option></select></span></div>
+      <div class="sp-detail-row"><span class="label">Game</span><span class="value"><select id="spDetGame" onchange="saveSpField('game',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:12px"><option>Cooking Crush</option><option>Cooking Chaos</option><option>Cooking Crunch</option><option>Kitchen Craze</option><option>Gym Mania</option><option>My Hotel</option></select></span></div>
+      <div class="sp-detail-row"><span class="label">Campaign</span><span class="value"><select id="spCampaign" onchange="saveCampaign()" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:12px"><option value="">Select Campaign</option><option>Installer</option><option>Purchaser</option><option>In-App Purchase</option><option>Retargeting</option><option>Re-Engagement</option><option>Brand Awareness</option><option>App Install</option><option>CPI</option><option>CPE (Cost Per Engagement)</option><option>ROAS Optimized</option><option>Value Optimized</option><option>Lookalike</option><option>Broad</option></select></span></div>
       <div class="sp-detail-row"><span class="label">Ad Type</span><span class="value" id="spType"></span></div>
+      <div class="sp-detail-row"><span class="label">Creative Type</span><span class="value" id="spCreativeType"></span></div>
+      <div class="sp-detail-row" id="spVarPartRow" style="display:none"><span class="label">Variation Part</span><span class="value" id="spVarPart"></span></div>
+      <div class="sp-detail-row" id="spParentAdRow" style="display:none"><span class="label">Parent Ad</span><span class="value" id="spParentAd"></span></div>
       <div class="sp-detail-row"><span class="label">Assigned</span><span class="value"><div id="spAssigned" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center"></div></span></div>
       <div class="sp-detail-row"><span class="label">Live Date</span><span class="value" id="spLiveDate"></span></div>
       <div class="sp-detail-row"><span class="label">Priority</span><span class="value" id="spPriority"></span></div>
+    </div>
+    <div class="sp-section" id="spCreativeLinkSection"><h4>Creative Link <span style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400">&#128274; Admin only</span></h4>
+      <div id="spCreativeLinkDisplay" style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;min-height:38px">
+        <span style="font-size:16px">&#128279;</span>
+        <a id="spCreativeLinkUrl" href="#" target="_blank" style="flex:1;color:var(--accent);font-size:13px;text-decoration:none;word-break:break-all;overflow:hidden;text-overflow:ellipsis"></a>
+        <span id="spCreativeLinkEmpty" style="color:var(--muted);font-size:12px">No link added yet</span>
+        <button id="spCreativeLinkEditBtn" style="background:none;border:none;color:var(--accent);cursor:pointer;font-size:14px;padding:2px 6px" onclick="toggleCreativeLinkEdit()" title="Edit link">&#9998;</button>
+      </div>
+      <div id="spCreativeLinkEdit" style="display:none;margin-top:6px">
+        <div style="display:flex;gap:6px"><input id="spCreativeLinkInput" style="flex:1;padding:8px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;outline:none" placeholder="Paste Google Drive link..."><button style="padding:6px 12px;background:var(--green);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600" onclick="saveCreativeLink()">Save</button><button style="padding:6px 12px;background:var(--border);color:var(--text);border:none;border-radius:6px;font-size:12px;cursor:pointer" onclick="toggleCreativeLinkEdit()">Cancel</button></div>
+      </div>
     </div>
     <div class="sp-section"><h4>Networks Run</h4>
       <p style="font-size:11px;color:var(--muted);margin-bottom:8px">ASO Team: mark which platforms this ad has run on</p>
@@ -476,26 +554,52 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
         <div class="sp-perf-tag loser" data-tag="loser" onclick="togglePerfTag(this)">&#8595; Loser</div>
       </div>
     </div>
-    <div class="sp-section"><h4>D7 Performance</h4>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div style="display:flex;gap:6px">
+    <div class="sp-section"><h4>Performance</h4>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="display:flex;gap:6px;align-items:center">
           <span class="sp-chip" style="cursor:pointer" onclick="this.style.opacity=this.style.opacity=='0.5'?'1':'0.5'">Overall</span>
           <span class="sp-chip" style="cursor:pointer;opacity:.5" id="spNetTab">Facebook</span>
         </div>
-        <span style="color:var(--green);font-weight:600;font-size:14px" id="spRoasBadge">ROAS 0.0x</span>
+        <span style="color:var(--green);font-weight:600;font-size:13px" id="spRoasBadge">ROAS 0.0x</span>
       </div>
-      <div class="sp-perf-grid">
-        <div class="sp-perf-box"><div class="pf-label">D7 ROAS</div><input id="spPfRoas" type="number" step="0.1" onchange="updatePerfFromPanel()"><span class="pf-unit">x</span></div>
-        <div class="sp-perf-box"><div class="pf-label">Spend</div><input id="spPfSpend" type="number" onchange="updatePerfFromPanel()"><span class="pf-unit">$</span></div>
-        <div class="sp-perf-box"><div class="pf-label">Installs</div><input id="spPfInstalls" type="number" onchange="updatePerfFromPanel()"></div>
-        <div class="sp-perf-box"><div class="pf-label">CTR</div><input id="spPfCtr" type="number" step="0.1" onchange="updatePerfFromPanel()"><span class="pf-unit">%</span></div>
-        <div class="sp-perf-box"><div class="pf-label">CPI</div><input id="spPfCpi" type="number" step="0.01" onchange="updatePerfFromPanel()"><span class="pf-unit">$</span></div>
+      <!-- Day ROAS toggles -->
+      <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px" id="spDayToggles"></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px"><div style="font-size:10px;color:var(--muted);margin-bottom:2px">ROAS</div><input id="spPfRoas" type="number" step="0.1" onchange="updatePerfFromPanel()" style="width:100%;background:transparent;border:none;color:#f1f5f9;font-size:14px;font-weight:600;outline:none"><span style="font-size:10px;color:var(--muted)">x</span></div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px"><div style="font-size:10px;color:var(--muted);margin-bottom:2px">Spend</div><input id="spPfSpend" type="number" onchange="updatePerfFromPanel()" style="width:100%;background:transparent;border:none;color:#f1f5f9;font-size:14px;font-weight:600;outline:none"><span style="font-size:10px;color:var(--muted)">$</span></div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px"><div style="font-size:10px;color:var(--muted);margin-bottom:2px">Installs</div><input id="spPfInstalls" type="number" onchange="updatePerfFromPanel()" style="width:100%;background:transparent;border:none;color:#f1f5f9;font-size:14px;font-weight:600;outline:none"></div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px"><div style="font-size:10px;color:var(--muted);margin-bottom:2px">CTR</div><input id="spPfCtr" type="number" step="0.1" onchange="updatePerfFromPanel()" style="width:100%;background:transparent;border:none;color:#f1f5f9;font-size:14px;font-weight:600;outline:none"><span style="font-size:10px;color:var(--muted)">%</span></div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px"><div style="font-size:10px;color:var(--muted);margin-bottom:2px">CPI</div><input id="spPfCpi" type="number" step="0.01" onchange="updatePerfFromPanel()" style="width:100%;background:transparent;border:none;color:#f1f5f9;font-size:14px;font-weight:600;outline:none"><span style="font-size:10px;color:var(--muted)">$</span></div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px"><div style="font-size:10px;color:var(--muted);margin-bottom:2px">CVR</div><input id="spPfCvr" type="number" step="0.1" onchange="updatePerfFromPanel()" style="width:100%;background:transparent;border:none;color:#f1f5f9;font-size:14px;font-weight:600;outline:none"><span style="font-size:10px;color:var(--muted)">%</span></div>
       </div>
-      <div class="sp-summary-chips" id="spSummary"></div>
+      <div class="sp-summary-chips" id="spSummary" style="margin-top:8px"></div>
     </div>
-    <div class="sp-section sp-desc"><h4>Description</h4>
-      <textarea id="spDesc" placeholder="Add description..."></textarea>
-      <div class="sp-desc-actions"><button class="btn-sp-save" onclick="saveDescription()">Save Description</button><button class="btn-sp-remove" onclick="removeDescription()">Remove</button><button style="background:#7f1d1d;color:#fca5a5;margin-left:auto" onclick="deleteTask()">&#128465; Delete Task</button></div>
+    <div class="sp-section sp-desc"><h4>Description <span id="spDescLock" style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400">&#128274; Admin only</span></h4>
+      <div id="spDescToolbar" onmousedown="event.preventDefault()" style="display:flex;gap:4px;margin-bottom:6px;padding:4px 6px;background:var(--bg);border:1px solid var(--border);border-bottom:none;border-radius:6px 6px 0 0;flex-wrap:wrap">
+        <button class="desc-tb-btn" onclick="execDescCmd('bold')" title="Bold" style="padding:4px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;font-size:12px;font-weight:700">B</button>
+        <button class="desc-tb-btn" onclick="execDescCmd('formatBlock','H3')" title="Headline" style="padding:4px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;font-size:12px;font-weight:600">H</button>
+        <div style="position:relative;display:inline-block">
+          <button class="desc-tb-btn" id="descColorBtn" onclick="toggleDescColorPicker()" title="Text Color" style="padding:4px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--orange);cursor:pointer;font-size:12px;font-weight:700">A</button>
+          <div id="descColorPicker" onmousedown="event.preventDefault()" style="display:none;position:absolute;top:100%;left:0;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px;z-index:60;display:none;grid-template-columns:repeat(5,1fr);gap:4px;box-shadow:0 4px 12px rgba(0,0,0,.3)">
+            <span style="width:22px;height:22px;border-radius:4px;background:#ef4444;cursor:pointer" onclick="execDescCmd('foreColor','#ef4444');closeDescColorPicker()"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#f59e0b;cursor:pointer" onclick="execDescCmd('foreColor','#f59e0b');closeDescColorPicker()"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#10b981;cursor:pointer" onclick="execDescCmd('foreColor','#10b981');closeDescColorPicker()"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#3b82f6;cursor:pointer" onclick="execDescCmd('foreColor','#3b82f6');closeDescColorPicker()"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#a855f7;cursor:pointer" onclick="execDescCmd('foreColor','#a855f7');closeDescColorPicker()"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#ec4899;cursor:pointer" onclick="execDescCmd('foreColor','#ec4899');closeDescColorPicker()"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#e2e8f0;cursor:pointer" onclick="execDescCmd('foreColor','#e2e8f0');closeDescColorPicker()"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#64748b;cursor:pointer" onclick="execDescCmd('foreColor','#64748b');closeDescColorPicker()"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#f1f5f9;cursor:pointer" onclick="execDescCmd('foreColor','#f1f5f9');closeDescColorPicker()"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#fbbf24;cursor:pointer" onclick="execDescCmd('foreColor','#fbbf24');closeDescColorPicker()"></span>
+          </div>
+        </div>
+        <button class="desc-tb-btn" onclick="execDescHighlight()" title="Highlight" style="padding:4px 8px;background:rgba(245,158,11,.2);border:1px solid var(--border);border-radius:4px;color:var(--orange);cursor:pointer;font-size:11px;font-weight:600">&#9632; Hi</button>
+        <button class="desc-tb-btn" onclick="execDescCmd('removeFormat')" title="Clear Formatting" style="padding:4px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px">&#10005;</button>
+        <span style="width:1px;background:var(--border);margin:0 4px;align-self:stretch"></span>
+        <button class="desc-tb-btn" id="spRefineBtn" onclick="refineDescription('sp')" title="AI Refine" style="padding:4px 10px;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;border-radius:4px;color:#fff;cursor:pointer;font-size:11px;font-weight:600;display:flex;align-items:center;gap:4px">&#10024; Refine</button>
+      </div>
+      <div id="spDesc" contenteditable="true" style="width:100%;min-height:80px;background:var(--bg);border:1px solid var(--border);border-radius:0 0 6px 6px;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;padding:10px;outline:none;line-height:1.6;overflow-y:auto;max-height:200px" placeholder="Add description..."></div>
+      <div class="sp-desc-actions" id="spDescActions"><button class="btn-sp-save" onclick="saveDescription()">Save Description</button><button class="btn-sp-remove" onclick="removeDescription()">Remove</button><button id="spDeleteTaskBtn" style="background:#7f1d1d;color:#fca5a5;margin-left:auto" onclick="deleteTask()">&#128465; Delete Task</button></div>
     </div>
     <div class="sp-section"><h4>Comments (<span id="spCommentCount">0</span>)</h4>
       <div class="sp-comment-list" id="spCommentList"></div>
@@ -509,21 +613,37 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
 const STORAGE_KEY = 'fm_creative_tracker';
 const IDEAS_KEY = 'fm_ideas';
 const TEAM_KEY = 'fm_team';
-const NETWORKS = ['Facebook','Google Ads','TikTok','Unity','AppLovin','IronSource','Mintegral','Multi-Platform'];
+const NETWORKS = ['Facebook','Google Ads','TikTok','Unity','AppLovin','IronSource','Mintegral','Apple'];
 
+// Role-based team: {name, role} where role = 'admin' or 'member'
+var ROLE_KEY = 'fm_team_roles';
+var currentUser = localStorage.getItem('fm_current_user') || 'Neeraj';
 let teamMembers = JSON.parse(localStorage.getItem(TEAM_KEY)) || ['Neeraj','Adnan'];
+var teamRoles = JSON.parse(localStorage.getItem(ROLE_KEY)) || {Neeraj:'admin',Adnan:'member'};
+
+function formatShortDate(dateStr) {
+  if (!dateStr) return '—';
+  var d = new Date(dateStr);
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return d.getDate() + ' ' + months[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2);
+}
+
+function isAdmin(name) { return (teamRoles[name||currentUser]||'member') === 'admin'; }
+function isCurrentAdmin() { return isAdmin(currentUser); }
+function saveRoles() { localStorage.setItem(ROLE_KEY, JSON.stringify(teamRoles)); }
+function setCurrentUser(name) { currentUser = name; localStorage.setItem('fm_current_user', name); renderAll(); if(currentPanelId) openSidePanel(currentPanelId); }
 
 const defaultTasks = [
-  {id:'CPT-001',game:'Cooking Chaos',name:'Chaos_PL01_ConveyorBelt_MINTEGRAL_20260310',type:'Playable Ad',status:'Ready',priority:3,assigned:['Neeraj'],d7roas:16.0,spend:120,cpi:0.00,installs:195,ctr:3.1,campaign:'Installer',networks:['Facebook'],perfTag:'winner',desc:'Kitchen loads. 2 conveyor belts start moving with food items (burgers, fries, coffee, cake, drinks). Serve the customer quickly and achieve the goal.',comments:[],notes:'',created:'2026-03-10',archived:false},
-  {id:'CPT-002',game:'Cooking Crush',name:'Alpha_Static_Banner_v1',type:'Static Ad',status:'Ready',priority:3,assigned:['Adnan'],d7roas:17.0,spend:5,cpi:null,installs:null,ctr:null,campaign:'Installer',networks:[],perfTag:'',desc:'',comments:[],notes:'',created:'2026-03-12',archived:false},
-  {id:'CPT-003',game:'Cooking Chaos',name:'Beta_Video_15s_v1',type:'Video Ad',status:'Ready',priority:3,assigned:['Neeraj','Adnan'],d7roas:0.0,spend:0,cpi:0.00,installs:0,ctr:0,campaign:'Installer',networks:[],perfTag:'',desc:'',comments:[],notes:'',created:'2026-03-14',archived:false},
-  {id:'CPT-004',game:'Cooking Chaos',name:'Beta_Playable_v1',type:'Playable Ad',status:'Live',priority:2,assigned:['Adnan'],d7roas:-3.0,spend:null,cpi:null,installs:null,ctr:null,campaign:'Installer',networks:[],perfTag:'loser',desc:'',comments:[],notes:'',created:'2026-03-15',archived:false},
-  {id:'CPT-005',game:'My Hotel',name:'Gamma_Static_Square_v1',type:'Static Ad',status:'Live',priority:1,assigned:['Adnan'],d7roas:1.2,spend:1200,cpi:3.90,installs:308,ctr:2.1,campaign:'Installer',networks:['Facebook','Google Ads'],perfTag:'',desc:'',comments:[],notes:'',created:'2026-03-16',archived:false},
-  {id:'CPT-006',game:'Kitchen Craze',name:'KK_Hero_Video_30s',type:'Video Ad',status:'Brief',priority:3,assigned:['Neeraj'],d7roas:null,spend:null,cpi:null,installs:null,ctr:null,campaign:'Installer',networks:[],perfTag:'',desc:'',comments:[],notes:'',created:'2026-03-18',archived:false},
-  {id:'CPT-007',game:'Cooking Crunch',name:'CC_Playable_v1',type:'Playable Ad',status:'Design',priority:2,assigned:['Neeraj','Adnan'],d7roas:null,spend:null,cpi:null,installs:null,ctr:null,campaign:'Installer',networks:[],perfTag:'',desc:'',comments:[],notes:'',created:'2026-03-19',archived:false},
-  {id:'CPT-008',game:'Cooking Crush',name:'CR_Video_15s_v2',type:'Video Ad',status:'On Hold',priority:1,assigned:['Adnan'],d7roas:null,spend:null,cpi:null,installs:null,ctr:null,campaign:'Installer',networks:[],perfTag:'',desc:'',comments:[],notes:'',created:'2026-03-20',archived:false},
-  {id:'CPT-009',game:'My Hotel',name:'MH_Story_v1',type:'Video Ad',status:'Stopped',priority:3,assigned:['Neeraj'],d7roas:0.0,spend:0,cpi:0.00,installs:0,ctr:0,campaign:'Installer',networks:[],perfTag:'',desc:'',comments:[],notes:'',created:'2026-03-21',archived:false},
-  {id:'CPT-010',game:'Cooking Crunch',name:'CrCr_Static_Banner_v1',type:'Static Ad',status:'Brief',priority:1,assigned:['Adnan'],d7roas:null,spend:null,cpi:null,installs:null,ctr:null,campaign:'Installer',networks:[],perfTag:'',desc:'',comments:[],notes:'',created:'2026-03-22',archived:false}
+  {id:'CPT-001',game:'Cooking Chaos',name:'Chaos_PL01_ConveyorBelt_MINTEGRAL_20260310',type:'Playable Ad',status:'Ready',priority:3,assigned:['Neeraj'],d7roas:16.0,spend:120,cpi:0.00,installs:195,ctr:3.1,campaign:'',networks:['Facebook'],perfTag:'winner',desc:'Kitchen loads. 2 conveyor belts start moving with food items (burgers, fries, coffee, cake, drinks). Serve the customer quickly and achieve the goal.',comments:[],notes:'',created:'2026-03-10',archived:false},
+  {id:'CPT-002',game:'Cooking Crush',name:'Alpha_Static_Banner_v1',type:'Static Ad',status:'Ready',priority:3,assigned:['Adnan'],d7roas:17.0,spend:5,cpi:null,installs:null,ctr:null,campaign:'',networks:[],perfTag:'',desc:'',comments:[],notes:'',created:'2026-03-12',archived:false},
+  {id:'CPT-003',game:'Cooking Chaos',name:'Beta_Video_15s_v1',type:'Video Ad',status:'Ready',priority:3,assigned:['Neeraj','Adnan'],d7roas:0.0,spend:0,cpi:0.00,installs:0,ctr:0,campaign:'',networks:[],perfTag:'',desc:'',comments:[],notes:'',created:'2026-03-14',archived:false},
+  {id:'CPT-004',game:'Cooking Chaos',name:'Beta_Playable_v1',type:'Playable Ad',status:'Live',priority:2,assigned:['Adnan'],d7roas:-3.0,spend:null,cpi:null,installs:null,ctr:null,campaign:'',networks:[],perfTag:'loser',desc:'',comments:[],notes:'',created:'2026-03-15',archived:false},
+  {id:'CPT-005',game:'My Hotel',name:'Gamma_Static_Square_v1',type:'Static Ad',status:'Live',priority:1,assigned:['Adnan'],d7roas:1.2,spend:1200,cpi:3.90,installs:308,ctr:2.1,campaign:'',networks:['Facebook','Google Ads'],perfTag:'',desc:'',comments:[],notes:'',created:'2026-03-16',archived:false},
+  {id:'CPT-006',game:'Kitchen Craze',name:'KK_Hero_Video_30s',type:'Video Ad',status:'Brief',priority:3,assigned:['Neeraj'],d7roas:null,spend:null,cpi:null,installs:null,ctr:null,campaign:'',networks:[],perfTag:'',desc:'',comments:[],notes:'',created:'2026-03-18',archived:false},
+  {id:'CPT-007',game:'Cooking Crunch',name:'CC_Playable_v1',type:'Playable Ad',status:'Design',priority:2,assigned:['Neeraj','Adnan'],d7roas:null,spend:null,cpi:null,installs:null,ctr:null,campaign:'',networks:[],perfTag:'',desc:'',comments:[],notes:'',created:'2026-03-19',archived:false},
+  {id:'CPT-008',game:'Cooking Crush',name:'CR_Video_15s_v2',type:'Video Ad',status:'On Hold',priority:1,assigned:['Adnan'],d7roas:null,spend:null,cpi:null,installs:null,ctr:null,campaign:'',networks:[],perfTag:'',desc:'',comments:[],notes:'',created:'2026-03-20',archived:false},
+  {id:'CPT-009',game:'My Hotel',name:'MH_Story_v1',type:'Video Ad',status:'Stopped',priority:3,assigned:['Neeraj'],d7roas:0.0,spend:0,cpi:0.00,installs:0,ctr:0,campaign:'',networks:[],perfTag:'',desc:'',comments:[],notes:'',created:'2026-03-21',archived:false},
+  {id:'CPT-010',game:'Cooking Crunch',name:'CrCr_Static_Banner_v1',type:'Static Ad',status:'Brief',priority:1,assigned:['Adnan'],d7roas:null,spend:null,cpi:null,installs:null,ctr:null,campaign:'',networks:[],perfTag:'',desc:'',comments:[],notes:'',created:'2026-03-22',archived:false}
 ];
 
 const defaultIdeas = [
@@ -545,7 +665,25 @@ let searchQuery = '';
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
   populateFilters();
-  renderAll();
+  // Restore last active tab from localStorage
+  var savedView = localStorage.getItem('fm_active_view');
+  var savedMyOnly = localStorage.getItem('fm_active_myonly') === 'true';
+  if (savedView) {
+    currentMyOnly = savedMyOnly;
+    // Highlight correct nav item
+    document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});
+    if (savedMyOnly) {
+      var myNav = document.querySelector('.nav-item[data-view="mytasks"]');
+      if (myNav) myNav.classList.add('active');
+      switchView('tasks');
+    } else {
+      var navEl = document.querySelector('.nav-item[data-view="'+savedView+'"]');
+      if (navEl) navEl.classList.add('active');
+      switchView(savedView);
+    }
+  } else {
+    renderAll();
+  }
   attachEvents();
 });
 
@@ -607,19 +745,17 @@ function attachEvents() {
   });
   // Filters
   document.getElementById('gameFilter').addEventListener('change', function(){renderTable()});
+  document.getElementById('networkFilter').addEventListener('change', function(){renderTable()});
   document.getElementById('statusFilter').addEventListener('change', function(){renderTable()});
-  // Modal close
-  document.getElementById('modalOverlay').addEventListener('click', function(e) {
-    if (e.target === this) closeModal();
-  });
-  document.getElementById('ideaModalOverlay').addEventListener('click', function(e) {
-    if (e.target === this) closeIdeaModal();
-  });
+  // Modal close - only via Cancel/X button, not outside click (prevents data loss)
 }
 
 // ============ VIEWS ============
 function switchView(v) {
   currentView = v;
+  // Persist active tab
+  localStorage.setItem('fm_active_view', v);
+  localStorage.setItem('fm_active_myonly', currentMyOnly ? 'true' : 'false');
   document.getElementById('tasksView').classList.toggle('active', v==='tasks');
   document.getElementById('dashboardView').classList.toggle('active', v==='dashboard');
   document.getElementById('ideavaultView').classList.toggle('active', v==='ideavault');
@@ -650,6 +786,7 @@ function getFiltered() {
   var gf = document.getElementById('gameFilter').value;
   var sf = document.getElementById('statusFilter').value;
   var ctf = document.getElementById('creativeTypeFilter') ? document.getElementById('creativeTypeFilter').value : '';
+  var nf = document.getElementById('networkFilter') ? document.getElementById('networkFilter').value : '';
   var list = tasks.filter(function(t) {
     if (currentFilter === 'archive') return t.archived;
     if (t.archived) return false;
@@ -660,10 +797,14 @@ function getFiltered() {
       var weekAgo = new Date(now.getTime() - 7*24*60*60*1000);
       if (d < weekAgo) return false;
     }
-    if (currentMyOnly && t.assigned.indexOf('Neeraj') === -1) return false;
+    if (currentMyOnly && t.assigned.indexOf(currentUser) === -1) return false;
     if (gf && t.game !== gf) return false;
     if (sf && t.status !== sf) return false;
     if (ctf && (t.creativeType||'') !== ctf) return false;
+    if (nf && (!t.networks || t.networks.indexOf(nf) === -1)) return false;
+    if (calFilterStart && t.created && t.created < calFilterStart) return false;
+    if (calFilterEnd && t.created && t.created > calFilterEnd) return false;
+    if (calFilterStart && !t.created) return false;
     if (searchQuery && t.id.toLowerCase().indexOf(searchQuery) === -1 && t.name.toLowerCase().indexOf(searchQuery) === -1) return false;
     return true;
   });
@@ -724,6 +865,8 @@ function renderTable() {
     if (autoTag === 'winner') tagHtml = ' <span style="background:rgba(16,185,129,.2);color:var(--green);font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700">W</span>';
     else if (autoTag === 'loser') tagHtml = ' <span style="background:rgba(239,68,68,.2);color:var(--red);font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700">L</span>';
     html += '<td><div class="creative-link" style="cursor:pointer;color:var(--text)" onclick="openSidePanel(\''+t.id+'\')">'+t.name+arrow+tagHtml+'</div></td>';
+    var dateStr2 = t.created ? formatShortDate(t.created) : '—';
+    html += '<td style="color:var(--muted);font-size:12px">'+dateStr2+'</td>';
     html += '<td>'+t.type+'</td>';
     html += '<td class="status-toggle" onclick="event.stopPropagation();toggleStatusDropdown(this,\''+t.id+'\')"><span class="badge-status '+statusClass+'">'+t.status+' &#9662;</span><div class="status-dropdown" id="sd-'+t.id+'"></div></td>';
     html += '<td><div class="priority-dots">'+prioHtml+'</div></td>';
@@ -738,7 +881,7 @@ function renderTable() {
   var active = tasks.filter(function(t){return !t.archived});
   document.getElementById('tabAll').textContent = active.length;
   document.getElementById('navTaskCount').textContent = active.length;
-  var myCount = active.filter(function(t){return t.assigned.indexOf('Neeraj')!==-1}).length;
+  var myCount = active.filter(function(t){return t.assigned.indexOf(currentUser)!==-1}).length;
   document.getElementById('navMyCount').textContent = myCount;
   // This week
   var now = new Date(); var weekAgo = new Date(now.getTime()-7*24*60*60*1000);
@@ -784,6 +927,11 @@ function removeFromModalTeam(name) {
   modalAssigned = modalAssigned.filter(function(n){return n!==name});
   renderModalTeam();
 }
+function toggleTaskVarFields() {
+  var type = document.getElementById('fCreativeType').value;
+  document.getElementById('varTypeRow').style.display = (type==='Variation') ? 'flex' : 'none';
+}
+
 function populateTaskParentAd() {
   var sel = document.getElementById('fParentAd');
   var current = sel.value;
@@ -805,25 +953,23 @@ function openModal(id) {
     document.getElementById('fCreativeType').value = t.creativeType || 'New Concept';
     populateTaskParentAd();
     document.getElementById('fParentAd').value = t.parentAd || '';
+    document.getElementById('fVarPart').value = t.varPart || 'Hook';
+    toggleTaskVarFields();
     document.getElementById('fName').value = t.name;
     document.getElementById('fStatus').value = t.status;
     document.getElementById('fPriority').value = t.priority;
     modalAssigned = t.assigned.slice();
-    document.getElementById('fRoas').value = t.d7roas != null ? t.d7roas : '';
-    document.getElementById('fSpend').value = t.spend != null ? t.spend : '';
-    document.getElementById('fCpi').value = t.cpi != null ? t.cpi : '';
-    document.getElementById('fNotes').value = t.notes || '';
+    document.getElementById('fNotes').innerHTML = t.desc || t.notes || '';
   } else {
     document.getElementById('modalTitle').textContent = 'Add New Creative Task';
     document.getElementById('editId').value = '';
     document.getElementById('fCreativeType').value = 'New Concept';
     document.getElementById('fParentAd').value = '';
+    document.getElementById('fVarPart').value = 'Hook';
+    toggleTaskVarFields();
     populateTaskParentAd();
     document.getElementById('fName').value = '';
-    document.getElementById('fRoas').value = '';
-    document.getElementById('fSpend').value = '';
-    document.getElementById('fCpi').value = '';
-    document.getElementById('fNotes').value = '';
+    document.getElementById('fNotes').innerHTML = '';
     modalAssigned = ['Neeraj'];
   }
   renderModalTeam();
@@ -839,14 +985,13 @@ function saveTask() {
     type: document.getElementById('fType').value,
     creativeType: document.getElementById('fCreativeType').value,
     parentAd: document.getElementById('fParentAd').value,
+    varPart: document.getElementById('fCreativeType').value==='Variation' ? document.getElementById('fVarPart').value : '',
     name: document.getElementById('fName').value,
     status: document.getElementById('fStatus').value,
     priority: parseInt(document.getElementById('fPriority').value),
     assigned: assigned,
-    d7roas: document.getElementById('fRoas').value !== '' ? parseFloat(document.getElementById('fRoas').value) : null,
-    spend: document.getElementById('fSpend').value !== '' ? parseFloat(document.getElementById('fSpend').value) : null,
-    cpi: document.getElementById('fCpi').value !== '' ? parseFloat(document.getElementById('fCpi').value) : null,
-    notes: document.getElementById('fNotes').value
+    notes: document.getElementById('fNotes').innerHTML,
+    desc: document.getElementById('fNotes').innerHTML
   };
   if (eid) {
     var idx = tasks.findIndex(function(t){return t.id===eid});
@@ -860,6 +1005,8 @@ function saveTask() {
     obj.id = 'CPT-' + String(maxNum+1).padStart(3,'0');
     obj.created = new Date().toISOString().slice(0,10);
     obj.archived = false;
+    obj.d7roas = null; obj.spend = null; obj.cpi = null; obj.installs = null; obj.ctr = null; obj.cvr = null;
+    obj.campaign = ''; obj.networks = []; obj.perfTag = ''; obj.comments = []; obj.creativeLink = ''; obj.roasByDay = {};
     tasks.push(obj);
   }
   save();
@@ -1505,7 +1652,7 @@ function openSidePanel(id) {
   if (!t.networks) t.networks = [];
   if (!t.comments) t.comments = [];
   if (!t.desc) t.desc = '';
-  if (!t.campaign) t.campaign = 'Installer';
+  if (!t.campaign) t.campaign = '';
   if (t.installs === undefined) t.installs = null;
   if (t.ctr === undefined) t.ctr = null;
   if (!t.perfTag) t.perfTag = '';
@@ -1513,9 +1660,26 @@ function openSidePanel(id) {
   document.getElementById('spId').textContent = t.id;
   document.getElementById('spGame').textContent = ' \u00B7 ' + t.game;
   document.getElementById('spName').textContent = t.name;
-  document.getElementById('spDetGame').textContent = t.game;
-  document.getElementById('spCampaign').value = t.campaign;
+  document.getElementById('spDetGame').value = t.game;
+  document.getElementById('spCampaign').value = t.campaign || '';
   document.getElementById('spType').textContent = t.type;
+  // Creative Type, Variation Part, Parent Ad
+  var ct = t.creativeType || 'New Concept';
+  var ctColor = {'Variation':'#f59e0b','New Concept':'#10b981','Mashup':'#a855f7','Localization':'#3b82f6'}[ct] || 'var(--accent)';
+  document.getElementById('spCreativeType').innerHTML = '<span style="padding:2px 10px;border-radius:10px;font-size:11px;background:'+ctColor+'22;color:'+ctColor+';font-weight:600">'+ct+'</span>';
+  if (ct === 'Variation' && t.varPart) {
+    document.getElementById('spVarPartRow').style.display = 'flex';
+    var vpColor = {'Hook':'#ef4444','Body':'#f59e0b','CTA':'#10b981'}[t.varPart] || 'var(--accent)';
+    document.getElementById('spVarPart').innerHTML = '<span style="padding:2px 10px;border-radius:10px;font-size:11px;background:'+vpColor+'22;color:'+vpColor+';font-weight:600">'+t.varPart+'</span>';
+  } else {
+    document.getElementById('spVarPartRow').style.display = 'none';
+  }
+  if (t.parentAd) {
+    document.getElementById('spParentAdRow').style.display = 'flex';
+    document.getElementById('spParentAd').innerHTML = '<span style="font-size:12px;color:var(--accent)">&#8627; '+t.parentAd+'</span>';
+  } else {
+    document.getElementById('spParentAdRow').style.display = 'none';
+  }
   var spAssHtml = '';
   t.assigned.forEach(function(a) {
     var cls = a === 'Neeraj' ? 'tag-neeraj' : (a === 'Adnan' ? 'tag-adnan' : 'tag-neeraj');
@@ -1545,25 +1709,69 @@ function openSidePanel(id) {
     el.style.opacity = (t.perfTag === tag) ? '1' : '0.4';
   });
 
-  // Performance
-  document.getElementById('spPfRoas').value = t.d7roas != null ? t.d7roas : '';
+  // Performance - multi-day ROAS
+  if (!t.roasByDay) t.roasByDay = {};
+  // Sync D7 from legacy d7roas if not in roasByDay
+  if (t.d7roas != null && t.roasByDay['D7'] == null) t.roasByDay['D7'] = t.d7roas;
+  currentPerfDay = 'D7';
+  var dayRoas = t.roasByDay[currentPerfDay];
+  document.getElementById('spPfRoas').value = dayRoas != null ? dayRoas : '';
   document.getElementById('spPfSpend').value = t.spend != null ? t.spend : '';
   document.getElementById('spPfInstalls').value = t.installs != null ? t.installs : '';
   document.getElementById('spPfCtr').value = t.ctr != null ? t.ctr : '';
   document.getElementById('spPfCpi').value = t.cpi != null ? t.cpi : '';
-  var roasVal = t.d7roas != null ? t.d7roas : 0;
-  document.getElementById('spRoasBadge').textContent = 'ROAS ' + roasVal.toFixed(1) + 'x';
+  document.getElementById('spPfCvr').value = t.cvr != null ? t.cvr : '';
+  var roasVal = dayRoas != null ? dayRoas : 0;
+  document.getElementById('spRoasBadge').textContent = 'D7 ROAS ' + roasVal.toFixed(1) + 'x';
   document.getElementById('spRoasBadge').style.color = roasVal > 0 ? 'var(--green)' : (roasVal < 0 ? 'var(--red)' : 'var(--muted)');
+  renderDayToggles(t);
   updateSummaryChips(t);
 
-  // Desc
-  document.getElementById('spDesc').value = t.desc || '';
+  // Creative Link
+  if (!t.creativeLink) t.creativeLink = '';
+  renderCreativeLink(t);
+  document.getElementById('spCreativeLinkEdit').style.display = 'none';
+
+  // Desc (rich text)
+  document.getElementById('spDesc').innerHTML = t.desc || t.notes || '';
 
   // Comments
   renderComments(t);
 
+  // Apply role restrictions
+  applyRoleRestrictions();
+
   document.getElementById('spOverlay').classList.add('show');
   document.getElementById('sidePanel').classList.add('open');
+}
+
+function applyRoleRestrictions() {
+  var admin = isCurrentAdmin();
+  // Description: admin can edit, members view-only
+  var descEl = document.getElementById('spDesc');
+  descEl.contentEditable = admin ? 'true' : 'false';
+  descEl.style.opacity = admin ? '1' : '0.85';
+  // Toolbar and save/remove buttons
+  document.getElementById('spDescToolbar').style.display = admin ? 'flex' : 'none';
+  var descActions = document.getElementById('spDescActions');
+  if (descActions) {
+    var btns = descActions.querySelectorAll('button');
+    btns.forEach(function(b) { if (b.textContent.indexOf('Save') !== -1 || b.textContent.indexOf('Remove') !== -1) b.style.display = admin ? 'inline' : 'none'; });
+  }
+  document.getElementById('spDescLock').style.display = admin ? 'none' : 'inline';
+  // Delete task button
+  var delBtn = document.getElementById('spDeleteTaskBtn');
+  if (delBtn) delBtn.style.display = admin ? 'inline' : 'none';
+  // Creative Link edit
+  var clEditBtn = document.getElementById('spCreativeLinkEditBtn');
+  if (clEditBtn) clEditBtn.style.display = admin ? 'inline' : 'none';
+  // Add Task button
+  var addBtns = document.querySelectorAll('.btn-add');
+  addBtns.forEach(function(btn) {
+    if (btn.textContent.indexOf('Add Task') !== -1) {
+      btn.style.display = admin ? 'flex' : 'none';
+    }
+  });
 }
 
 function closeSidePanel() {
@@ -1590,6 +1798,41 @@ function togglePerfTag(el) {
   openSidePanel(currentPanelId);
 }
 
+var ROAS_DAYS = ['D1','D2','D3','D4','D5','D6','D7','D14','D21','D30'];
+var currentPerfDay = 'D7';
+
+function renderDayToggles(t) {
+  if (!t.roasByDay) t.roasByDay = {};
+  var html = '';
+  ROAS_DAYS.forEach(function(day) {
+    var isActive = day === currentPerfDay;
+    var hasData = t.roasByDay[day] != null;
+    var style = isActive ? 'background:var(--accent);color:#fff;border-color:var(--accent)' : (hasData ? 'border-color:rgba(59,130,246,.4);color:var(--accent)' : '');
+    html += '<span style="padding:4px 8px;border:1px solid var(--border);border-radius:4px;font-size:10px;cursor:pointer;font-weight:600;transition:all .2s;'+style+'" onclick="switchPerfDay(\''+day+'\')" title="'+(hasData?'ROAS '+t.roasByDay[day]+'x':'No data')+'">'+day+'</span>';
+  });
+  document.getElementById('spDayToggles').innerHTML = html;
+}
+
+function switchPerfDay(day) {
+  var t = tasks.find(function(x){return x.id===currentPanelId});
+  if (!t) return;
+  // Save current day ROAS before switching
+  var curRoas = document.getElementById('spPfRoas').value;
+  if (!t.roasByDay) t.roasByDay = {};
+  if (curRoas !== '') t.roasByDay[currentPerfDay] = parseFloat(curRoas);
+  // Also keep d7roas in sync
+  if (currentPerfDay === 'D7') t.d7roas = curRoas !== '' ? parseFloat(curRoas) : null;
+  currentPerfDay = day;
+  // Load new day ROAS
+  var dayRoas = t.roasByDay[day];
+  document.getElementById('spPfRoas').value = dayRoas != null ? dayRoas : '';
+  var rv = dayRoas != null ? dayRoas : 0;
+  document.getElementById('spRoasBadge').textContent = day+' ROAS '+rv.toFixed(1)+'x';
+  document.getElementById('spRoasBadge').style.color = rv > 0 ? 'var(--green)' : (rv < 0 ? 'var(--red)' : 'var(--muted)');
+  save();
+  renderDayToggles(t);
+}
+
 function updatePerfFromPanel() {
   var t = tasks.find(function(x){return x.id===currentPanelId});
   if (!t) return;
@@ -1598,14 +1841,24 @@ function updatePerfFromPanel() {
   var ins = document.getElementById('spPfInstalls').value;
   var ctr = document.getElementById('spPfCtr').value;
   var cpi = document.getElementById('spPfCpi').value;
-  t.d7roas = r !== '' ? parseFloat(r) : null;
+  var cvr = document.getElementById('spPfCvr').value;
+  // Save ROAS to current day
+  if (!t.roasByDay) t.roasByDay = {};
+  if (r !== '') t.roasByDay[currentPerfDay] = parseFloat(r);
+  else delete t.roasByDay[currentPerfDay];
+  // Keep d7roas in sync for table display
+  if (currentPerfDay === 'D7') t.d7roas = r !== '' ? parseFloat(r) : null;
+  else if (t.roasByDay['D7'] != null) t.d7roas = t.roasByDay['D7'];
   t.spend = s !== '' ? parseFloat(s) : null;
   t.installs = ins !== '' ? parseInt(ins) : null;
   t.ctr = ctr !== '' ? parseFloat(ctr) : null;
   t.cpi = cpi !== '' ? parseFloat(cpi) : null;
-  var rv = t.d7roas != null ? t.d7roas : 0;
-  document.getElementById('spRoasBadge').textContent = 'ROAS '+rv.toFixed(1)+'x';
+  t.cvr = cvr !== '' ? parseFloat(cvr) : null;
+  var rv = r !== '' ? parseFloat(r) : 0;
+  document.getElementById('spRoasBadge').textContent = currentPerfDay+' ROAS '+rv.toFixed(1)+'x';
+  document.getElementById('spRoasBadge').style.color = rv > 0 ? 'var(--green)' : (rv < 0 ? 'var(--red)' : 'var(--muted)');
   updateSummaryChips(t);
+  renderDayToggles(t);
   save(); renderTable();
 }
 
@@ -1618,10 +1871,132 @@ function updateSummaryChips(t) {
   document.getElementById('spSummary').innerHTML = chips;
 }
 
+function saveCampaign() {
+  var t = tasks.find(function(x){return x.id===currentPanelId});
+  if (!t) return;
+  t.campaign = document.getElementById('spCampaign').value;
+  save();
+}
+
+function saveSpField(field, value) {
+  var t = tasks.find(function(x){return x.id===currentPanelId});
+  if (!t) return;
+  t[field] = value;
+  // Update header display
+  if (field === 'game') document.getElementById('spGame').textContent = ' · ' + value;
+  save(); renderTable(); populateFilters();
+}
+
+function toggleCreativeLinkEdit() {
+  var editDiv = document.getElementById('spCreativeLinkEdit');
+  var isHidden = editDiv.style.display === 'none';
+  editDiv.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    var t = tasks.find(function(x){return x.id===currentPanelId});
+    document.getElementById('spCreativeLinkInput').value = (t && t.creativeLink) || '';
+    document.getElementById('spCreativeLinkInput').focus();
+  }
+}
+function saveCreativeLink() {
+  var t = tasks.find(function(x){return x.id===currentPanelId});
+  if (!t) return;
+  t.creativeLink = document.getElementById('spCreativeLinkInput').value.trim();
+  save();
+  document.getElementById('spCreativeLinkEdit').style.display = 'none';
+  renderCreativeLink(t);
+}
+function renderCreativeLink(t) {
+  var url = t.creativeLink || '';
+  var linkEl = document.getElementById('spCreativeLinkUrl');
+  var emptyEl = document.getElementById('spCreativeLinkEmpty');
+  var editBtn = document.getElementById('spCreativeLinkEditBtn');
+  if (url) {
+    linkEl.href = url;
+    linkEl.textContent = url.length > 50 ? url.slice(0,50)+'...' : url;
+    linkEl.style.display = 'block';
+    emptyEl.style.display = 'none';
+  } else {
+    linkEl.style.display = 'none';
+    emptyEl.style.display = 'inline';
+  }
+  // Admin-only edit
+  editBtn.style.display = isCurrentAdmin() ? 'inline' : 'none';
+}
+
+// ============ AI REFINE ============
+function refineDescription(source) {
+  var descEl, btn, rawText;
+  if (source === 'sp') {
+    descEl = document.getElementById('spDesc');
+    btn = document.getElementById('spRefineBtn');
+    rawText = descEl.innerText.trim();
+  } else {
+    descEl = document.getElementById('fNotes');
+    btn = document.getElementById('modalRefineBtn');
+    rawText = descEl.innerText.trim();
+  }
+  if (!rawText) { alert('Description mein kuch likho pehle!'); return; }
+  // Get context from current task
+  var context = '';
+  if (source === 'sp' && currentPanelId) {
+    var t = tasks.find(function(x){return x.id===currentPanelId});
+    if (t) context = 'Game: ' + t.game + ', Ad Type: ' + t.type + ', Creative Type: ' + (t.creativeType||'New Concept') + (t.parentAd ? ', Variation of: ' + t.parentAd : '');
+  }
+  // Show loading state
+  var origHtml = btn.innerHTML;
+  btn.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block">&#10024;</span> Refining...';
+  btn.style.opacity = '0.7';
+  btn.style.pointerEvents = 'none';
+
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain'},
+    body: JSON.stringify({action: 'refine', text: rawText, context: context})
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success && data.refined) {
+      descEl.innerHTML = data.refined.replace(/\n/g, '<br>');
+      // Auto-save if side panel
+      if (source === 'sp' && currentPanelId) {
+        var t = tasks.find(function(x){return x.id===currentPanelId});
+        if (t) { t.desc = descEl.innerHTML; t.notes = descEl.innerHTML; save(); }
+      }
+    } else {
+      alert('Refine failed: ' + (data.error || 'Unknown error') + '\n\nMake sure Apps Script is updated with the refine function and Gemini API key is set.');
+    }
+  })
+  .catch(function(err) {
+    alert('Could not connect to AI service.\n\n' + err.message + '\n\nCheck: Apps Script deployed with refine function + Gemini API key in Script Properties.');
+  })
+  .finally(function() {
+    btn.innerHTML = origHtml;
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'auto';
+  });
+}
+
+// Rich text toolbar functions
+function execDescCmd(cmd, val) {
+  document.getElementById('spDesc').focus();
+  document.execCommand(cmd, false, val || null);
+}
+function execDescHighlight() {
+  document.getElementById('spDesc').focus();
+  document.execCommand('hiliteColor', false, 'rgba(245,158,11,0.3)');
+}
+function toggleDescColorPicker() {
+  var picker = document.getElementById('descColorPicker');
+  picker.style.display = picker.style.display === 'grid' ? 'none' : 'grid';
+}
+function closeDescColorPicker() { document.getElementById('descColorPicker').style.display = 'none'; }
+
 function saveDescription() {
   var t = tasks.find(function(x){return x.id===currentPanelId});
   if (!t) return;
-  t.desc = document.getElementById('spDesc').value;
+  var val = document.getElementById('spDesc').innerHTML;
+  t.desc = val;
+  t.notes = val;
   save();
 }
 
@@ -1635,9 +2010,9 @@ function deleteTask() {
 }
 
 function removeDescription() {
-  document.getElementById('spDesc').value = '';
+  document.getElementById('spDesc').innerHTML = '';
   var t = tasks.find(function(x){return x.id===currentPanelId});
-  if (t) { t.desc = ''; save(); }
+  if (t) { t.desc = ''; t.notes = ''; save(); }
 }
 
 function renderComments(t) {
@@ -1674,7 +2049,7 @@ function addComment() {
   var text = inp.value.trim();
   if (!text) return;
   if (!t.comments) t.comments = [];
-  t.comments.push({author:'Neeraj',text:text,time:new Date().toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})});
+  t.comments.push({author:currentUser,text:text,time:new Date().toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})});
   inp.value = '';
   save(); renderComments(t);
 }
@@ -1754,10 +2129,236 @@ document.addEventListener('click', function() {
   if (_openAssignPopup) { _openAssignPopup.classList.remove('open'); _openAssignPopup = null; }
 });
 
+// ============ CALENDAR PICKER ============
+var calYear = new Date().getFullYear();
+var calMonth = new Date().getMonth(); // 0-based
+var calFilterStart = null;
+var calFilterEnd = null;
+var calSelectMode = 0; // 0=none, 1=start picked waiting for end
+
+function toggleCalendar() {
+  var popup = document.getElementById('calPopup');
+  if (popup.style.display === 'none') { renderCalendar(); popup.style.display = 'block'; }
+  else { popup.style.display = 'none'; }
+}
+
+function calNav(dir) {
+  calMonth += dir;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonthYear').textContent = monthNames[calMonth] + ' ' + calYear;
+  // Day headers
+  var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var hdrHtml = '';
+  days.forEach(function(d) { hdrHtml += '<span class="cal-hdr">' + d + '</span>'; });
+  document.getElementById('calDayHeaders').innerHTML = hdrHtml;
+  // Build task date set for dot indicators
+  var taskDates = {};
+  tasks.forEach(function(t) { if (t.created && !t.archived) taskDates[t.created] = true; });
+  // Calendar grid
+  var firstDay = new Date(calYear, calMonth, 1).getDay();
+  var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  var daysInPrev = new Date(calYear, calMonth, 0).getDate();
+  var today = new Date().toISOString().slice(0, 10);
+  var html = '';
+  // Previous month's trailing days
+  for (var p = firstDay - 1; p >= 0; p--) {
+    var pd = daysInPrev - p;
+    var pm = calMonth === 0 ? 11 : calMonth - 1;
+    var py = calMonth === 0 ? calYear - 1 : calYear;
+    var pDate = py + '-' + String(pm + 1).padStart(2, '0') + '-' + String(pd).padStart(2, '0');
+    html += '<span class="cal-day other" onclick="calPickDate(\'' + pDate + '\')">' + pd + '</span>';
+  }
+  // Current month days
+  for (var d = 1; d <= daysInMonth; d++) {
+    var dateStr = calYear + '-' + String(calMonth + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+    var cls = 'cal-day';
+    if (dateStr === today) cls += ' today';
+    if (taskDates[dateStr]) cls += ' has-task';
+    // Range highlighting
+    if (calFilterStart && calFilterEnd) {
+      if (dateStr === calFilterStart && dateStr === calFilterEnd) cls += ' selected range-start range-end';
+      else if (dateStr === calFilterStart) cls += ' range-start';
+      else if (dateStr === calFilterEnd) cls += ' range-end';
+      else if (dateStr > calFilterStart && dateStr < calFilterEnd) cls += ' in-range';
+    } else if (calFilterStart && dateStr === calFilterStart) {
+      cls += ' selected';
+    }
+    html += '<span class="' + cls + '" onclick="calPickDate(\'' + dateStr + '\')">' + d + '</span>';
+  }
+  // Next month's leading days
+  var totalCells = firstDay + daysInMonth;
+  var remaining = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+  for (var n = 1; n <= remaining; n++) {
+    var nm = calMonth === 11 ? 0 : calMonth + 1;
+    var ny = calMonth === 11 ? calYear + 1 : calYear;
+    var nDate = ny + '-' + String(nm + 1).padStart(2, '0') + '-' + String(n).padStart(2, '0');
+    html += '<span class="cal-day other" onclick="calPickDate(\'' + nDate + '\')">' + n + '</span>';
+  }
+  document.getElementById('calGrid').innerHTML = html;
+  // Update range label
+  updateCalLabel();
+}
+
+function calPickDate(dateStr) {
+  if (calSelectMode === 0) {
+    // First click - set start
+    calFilterStart = dateStr;
+    calFilterEnd = null;
+    calSelectMode = 1;
+    document.getElementById('calRangeLabel').textContent = 'Click another date for range, or done';
+    document.getElementById('calRangeLabel').style.color = 'var(--accent)';
+  } else {
+    // Second click - set end (or same date = single day)
+    if (dateStr < calFilterStart) {
+      calFilterEnd = calFilterStart;
+      calFilterStart = dateStr;
+    } else {
+      calFilterEnd = dateStr;
+    }
+    calSelectMode = 0;
+    document.getElementById('calRangeLabel').style.color = 'var(--muted)';
+  }
+  renderCalendar();
+  renderTable();
+}
+
+function clearCalFilter() {
+  calFilterStart = null;
+  calFilterEnd = null;
+  calSelectMode = 0;
+  document.getElementById('calLabel').textContent = '';
+  document.getElementById('calBtn').style.borderColor = 'var(--border)';
+  document.getElementById('calRangeLabel').textContent = 'Click a date or select range';
+  document.getElementById('calRangeLabel').style.color = 'var(--muted)';
+  renderCalendar();
+  renderTable();
+  document.getElementById('calPopup').style.display = 'none';
+}
+
+function updateCalLabel() {
+  var label = document.getElementById('calLabel');
+  var btn = document.getElementById('calBtn');
+  if (calFilterStart && calFilterEnd && calFilterStart !== calFilterEnd) {
+    label.textContent = formatShortDate(calFilterStart) + ' - ' + formatShortDate(calFilterEnd);
+    btn.style.borderColor = 'var(--accent)';
+    document.getElementById('calRangeLabel').textContent = calFilterStart + ' to ' + calFilterEnd;
+  } else if (calFilterStart) {
+    label.textContent = formatShortDate(calFilterStart);
+    btn.style.borderColor = 'var(--accent)';
+    document.getElementById('calRangeLabel').textContent = calFilterStart;
+  } else {
+    label.textContent = '';
+    btn.style.borderColor = 'var(--border)';
+  }
+}
+
+// Close calendar on outside click
+document.addEventListener('click', function(e) {
+  var popup = document.getElementById('calPopup');
+  var btn = document.getElementById('calBtn');
+  if (popup && popup.style.display !== 'none' && !popup.contains(e.target) && !btn.contains(e.target)) {
+    popup.style.display = 'none';
+  }
+});
+
+// ============ USER MENU & ROLES ============
+function toggleUserMenu() {
+  var menu = document.getElementById('userMenu');
+  if (menu.style.display === 'none') { renderUserMenu(); menu.style.display = 'block'; }
+  else { menu.style.display = 'none'; }
+}
+function renderUserMenu() {
+  var listHtml = '';
+  teamMembers.forEach(function(name) {
+    var role = teamRoles[name] || 'member';
+    var isCurrent = name === currentUser;
+    var roleColor = role === 'admin' ? 'var(--orange)' : 'var(--muted)';
+    var roleBg = role === 'admin' ? 'rgba(245,158,11,.15)' : 'rgba(100,116,139,.15)';
+    listHtml += '<div style="padding:8px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:background .15s;'+(isCurrent?'background:rgba(59,130,246,.1);':'')+ '" onmouseover="this.style.background=\'rgba(59,130,246,.08)\'" onmouseout="this.style.background=\''+(isCurrent?'rgba(59,130,246,.1)':'')+ '\'" onclick="setCurrentUser(\''+name+'\');document.getElementById(\'userMenu\').style.display=\'none\'">';
+    listHtml += '<span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff">'+name.slice(0,2).toUpperCase()+'</span>';
+    listHtml += '<div style="flex:1"><div style="font-size:13px;color:#f1f5f9;font-weight:'+(isCurrent?'600':'400')+'">'+name+(isCurrent?' &#10003;':'')+'</div>';
+    listHtml += '<span style="font-size:10px;padding:1px 6px;border-radius:3px;background:'+roleBg+';color:'+roleColor+';font-weight:600;text-transform:uppercase">'+role+'</span></div>';
+    listHtml += '</div>';
+  });
+  document.getElementById('userMenuList').innerHTML = listHtml;
+  // Team management (admin only)
+  var mgmtHtml = '';
+  if (isCurrentAdmin()) {
+    teamMembers.forEach(function(name) {
+      var role = teamRoles[name] || 'member';
+      mgmtHtml += '<div style="padding:6px 14px;display:flex;align-items:center;gap:8px;font-size:12px">';
+      mgmtHtml += '<span style="flex:1;color:var(--text)">'+name+'</span>';
+      if (name !== currentUser) {
+        mgmtHtml += '<select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:4px;font-size:11px" onchange="changeRole(\''+name+'\',this.value)">';
+        mgmtHtml += '<option value="admin"'+(role==='admin'?' selected':'')+'>Admin</option>';
+        mgmtHtml += '<option value="member"'+(role==='member'?' selected':'')+'>Member</option>';
+        mgmtHtml += '</select>';
+        mgmtHtml += '<span style="cursor:pointer;color:var(--red);font-size:14px" onclick="event.stopPropagation();removeMember(\''+name+'\')" title="Remove">&times;</span>';
+      } else {
+        mgmtHtml += '<span style="font-size:10px;color:var(--green);font-weight:600">YOU</span>';
+      }
+      mgmtHtml += '</div>';
+    });
+    mgmtHtml += '<div style="padding:6px 14px;display:flex;gap:6px"><input id="newMemberInput" style="flex:1;padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;outline:none" placeholder="Add member..." onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\'){event.stopPropagation();addNewMember()}"><select id="newMemberRole" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:4px;font-size:11px" onclick="event.stopPropagation()"><option value="member">Member</option><option value="admin">Admin</option></select><button style="padding:4px 8px;background:var(--accent);color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer" onclick="event.stopPropagation();addNewMember()">+</button></div>';
+  } else {
+    mgmtHtml += '<div style="padding:8px 14px;font-size:12px;color:var(--muted)">&#128274; Only admins can manage team</div>';
+  }
+  document.getElementById('teamMgmtSection').innerHTML = mgmtHtml;
+}
+function changeRole(name, role) { teamRoles[name] = role; saveRoles(); renderUserMenu(); }
+function removeMember(name) {
+  if (!confirm('Remove '+name+' from the team?')) return;
+  teamMembers = teamMembers.filter(function(n){return n!==name});
+  delete teamRoles[name];
+  save(); saveRoles(); renderUserMenu();
+}
+function addNewMember() {
+  var inp = document.getElementById('newMemberInput');
+  var name = inp.value.trim();
+  if (!name) return;
+  var role = document.getElementById('newMemberRole').value;
+  if (teamMembers.indexOf(name) === -1) {
+    teamMembers.push(name);
+    teamRoles[name] = role;
+    save(); saveRoles(); renderUserMenu();
+  }
+  inp.value = '';
+}
+function updateAvatarDisplay() {
+  var av = document.getElementById('userAvatar');
+  if (av) {
+    av.textContent = currentUser.slice(0,2).toUpperCase();
+    av.title = currentUser + ' (' + (teamRoles[currentUser]||'member') + ')';
+  }
+}
+// Close user menu on outside click
+document.addEventListener('click', function(e) {
+  var menu = document.getElementById('userMenu');
+  var avatar = document.getElementById('userAvatar');
+  if (menu && menu.style.display !== 'none' && !menu.contains(e.target) && e.target !== avatar) {
+    menu.style.display = 'none';
+  }
+});
+
 // ============ RENDER ALL ============
 function renderAll() {
   renderTable();
   updateSubtitle();
+  updateAvatarDisplay();
+  // Apply global role restrictions
+  var admin = isCurrentAdmin();
+  document.querySelectorAll('.btn-add').forEach(function(btn) {
+    if (btn.textContent.indexOf('Add Task') !== -1 || btn.textContent.indexOf('New Idea') !== -1) {
+      btn.style.opacity = admin ? '1' : '0.5';
+      btn.style.pointerEvents = admin ? 'auto' : 'none';
+    }
+  });
 }
 </script>
 </body>

@@ -473,7 +473,34 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
       <div class="form-group"><label>Date of Idea</label><input id="iDate" type="date"></div>
       <div class="form-group"><label>Priority</label><select id="iPriority"><option value="normal">Normal</option><option value="high">High</option><option value="low">Low</option></select></div>
     </div>
-    <div class="form-group"><label>Description</label><textarea id="iDesc" rows="3" placeholder="Describe the creative concept, hook, or mechanic..."></textarea></div>
+    <div class="form-row" id="ideaVarPartRow" style="display:none">
+      <div class="form-group"><label>Variation Part</label><select id="iVarPart"><option value="Hook">Hook</option><option value="Body">Body</option><option value="CTA">CTA</option></select></div>
+      <div class="form-group"></div>
+    </div>
+    <div class="form-group"><label>Description</label>
+      <div onmousedown="event.preventDefault()" style="display:flex;gap:4px;margin-bottom:0;padding:4px 6px;background:var(--bg);border:1px solid var(--border);border-bottom:none;border-radius:6px 6px 0 0;flex-wrap:wrap">
+        <button type="button" onclick="document.getElementById('iDesc').focus();document.execCommand('bold')" title="Bold" style="padding:3px 7px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;font-size:12px;font-weight:700">B</button>
+        <button type="button" onclick="document.getElementById('iDesc').focus();document.execCommand('formatBlock',false,'H3')" title="Headline" style="padding:3px 7px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;font-size:12px;font-weight:600">H</button>
+        <div style="position:relative;display:inline-block">
+          <button type="button" onclick="var p=document.getElementById('iDescColorPicker');p.style.display=p.style.display==='grid'?'none':'grid'" title="Text Color" style="padding:3px 7px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--orange);cursor:pointer;font-size:12px;font-weight:700">A</button>
+          <div id="iDescColorPicker" onmousedown="event.preventDefault()" style="display:none;position:absolute;top:100%;left:0;background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px;z-index:1060;grid-template-columns:repeat(5,1fr);gap:4px;box-shadow:0 4px 12px rgba(0,0,0,.3)">
+            <span style="width:22px;height:22px;border-radius:4px;background:#ef4444;cursor:pointer" onclick="document.getElementById('iDesc').focus();document.execCommand('foreColor',false,'#ef4444');document.getElementById('iDescColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#f59e0b;cursor:pointer" onclick="document.getElementById('iDesc').focus();document.execCommand('foreColor',false,'#f59e0b');document.getElementById('iDescColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#10b981;cursor:pointer" onclick="document.getElementById('iDesc').focus();document.execCommand('foreColor',false,'#10b981');document.getElementById('iDescColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#3b82f6;cursor:pointer" onclick="document.getElementById('iDesc').focus();document.execCommand('foreColor',false,'#3b82f6');document.getElementById('iDescColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#a855f7;cursor:pointer" onclick="document.getElementById('iDesc').focus();document.execCommand('foreColor',false,'#a855f7');document.getElementById('iDescColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#ec4899;cursor:pointer" onclick="document.getElementById('iDesc').focus();document.execCommand('foreColor',false,'#ec4899');document.getElementById('iDescColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#e2e8f0;cursor:pointer" onclick="document.getElementById('iDesc').focus();document.execCommand('foreColor',false,'#e2e8f0');document.getElementById('iDescColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#64748b;cursor:pointer" onclick="document.getElementById('iDesc').focus();document.execCommand('foreColor',false,'#64748b');document.getElementById('iDescColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#fbbf24;cursor:pointer" onclick="document.getElementById('iDesc').focus();document.execCommand('foreColor',false,'#fbbf24');document.getElementById('iDescColorPicker').style.display='none'"></span>
+            <span style="width:22px;height:22px;border-radius:4px;background:#f1f5f9;cursor:pointer" onclick="document.getElementById('iDesc').focus();document.execCommand('foreColor',false,'#f1f5f9');document.getElementById('iDescColorPicker').style.display='none'"></span>
+          </div>
+        </div>
+        <button type="button" onclick="document.getElementById('iDesc').focus();document.execCommand('hiliteColor',false,'rgba(245,158,11,0.3)')" title="Highlight" style="padding:3px 7px;background:rgba(245,158,11,.2);border:1px solid var(--border);border-radius:4px;color:var(--orange);cursor:pointer;font-size:11px;font-weight:600">Hi</button>
+        <button type="button" onclick="document.getElementById('iDesc').focus();document.execCommand('removeFormat')" title="Clear" style="padding:3px 7px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px">&#10005;</button>
+      </div>
+      <div id="iDesc" contenteditable="true" style="width:100%;min-height:80px;max-height:160px;overflow-y:auto;background:var(--bg);border:1px solid var(--border);border-radius:0 0 6px 6px;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;padding:10px;outline:none;line-height:1.6" placeholder="Describe the creative concept, hook, or mechanic..."></div>
+    </div>
     <div class="form-group"><label>Reference / Inspiration URL</label><input id="iRef" placeholder="https://..."></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeIdeaModal()">Cancel</button>
@@ -1263,6 +1290,7 @@ function toggleParentAd() {
   var type = document.getElementById('iIdeaType').value;
   var show = (type === 'Variation' || type === 'Mashup');
   document.getElementById('parentAdGroup').style.display = show ? 'block' : 'none';
+  document.getElementById('ideaVarPartRow').style.display = (type === 'Variation') ? 'flex' : 'none';
   if (show) populateParentAdDropdown();
 }
 
@@ -1290,10 +1318,11 @@ function openIdeaModal(id) {
     document.getElementById('iCategory').value = idea.category || '';
     document.getElementById('iPriority').value = idea.priority || 'normal';
     document.getElementById('iDate').value = idea.date || '';
-    document.getElementById('iDesc').value = idea.desc || '';
+    document.getElementById('iDesc').innerHTML = idea.desc || '';
     document.getElementById('iRef').value = idea.ref || '';
     toggleParentAd();
     if (idea.parentAd) document.getElementById('iParentAd').value = idea.parentAd;
+    if (idea.varPart) document.getElementById('iVarPart').value = idea.varPart;
   } else {
     document.getElementById('ideaModalTitle').textContent = 'New Creative Idea';
     document.getElementById('ideaEditId').value = '';
@@ -1302,9 +1331,10 @@ function openIdeaModal(id) {
     document.getElementById('iGame').value = '';
     document.getElementById('iCategory').value = '';
     document.getElementById('iPriority').value = 'normal';
-    document.getElementById('iDesc').value = '';
+    document.getElementById('iDesc').innerHTML = '';
     document.getElementById('iRef').value = '';
     document.getElementById('iParentAd').value = '';
+    document.getElementById('iVarPart').value = 'Hook';
     toggleParentAd();
   }
 }
@@ -1313,15 +1343,17 @@ function closeIdeaModal() { document.getElementById('ideaModalOverlay').classLis
 function getIdeaFromForm() {
   var ideaType = document.getElementById('iIdeaType').value;
   var parentAd = (ideaType==='Variation'||ideaType==='Mashup') ? document.getElementById('iParentAd').value : '';
+  var varPart = (ideaType==='Variation') ? document.getElementById('iVarPart').value : '';
   return {
     title: document.getElementById('iTitle').value,
     ideaType: ideaType,
     parentAd: parentAd,
+    varPart: varPart,
     game: document.getElementById('iGame').value,
     category: document.getElementById('iCategory').value,
     priority: document.getElementById('iPriority').value,
     date: document.getElementById('iDate').value,
-    desc: document.getElementById('iDesc').value,
+    desc: document.getElementById('iDesc').innerHTML,
     ref: document.getElementById('iRef').value,
     tags: [document.getElementById('iGame').value, document.getElementById('iCategory').value, ideaType].filter(Boolean)
   };

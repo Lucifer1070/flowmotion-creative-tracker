@@ -131,7 +131,7 @@ canvas{max-height:260px}
 .idea-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
 .idea-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:20px;cursor:pointer;transition:all .2s}
 .idea-card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 16px rgba(59,130,246,.1)}
-.idea-card h4{font-size:14px;margin-bottom:6px;color:#f1f5f9}
+.idea-card h4{font-size:14px;margin-bottom:6px;color:#f1f5f9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .idea-card p{font-size:12px;color:var(--muted);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
 .idea-card .idea-meta{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
 .idea-tag{padding:2px 8px;border-radius:4px;font-size:10px;background:rgba(59,130,246,.15);color:var(--accent)}
@@ -1275,7 +1275,7 @@ function renderIdeas() {
     var parentInfo = idea.parentAd ? '<div style="font-size:10px;color:var(--muted);margin-top:4px">&#8627; '+idea.parentAd+'</div>' : '';
     html += '<div class="idea-card" style="border-left:3px solid '+typeColor+'" onclick="openIdeaModal('+idea.id+')">';
     html += '<div style="display:flex;justify-content:space-between;align-items:flex-start">';
-    html += '<div style="flex:1"><h4>'+idea.title+'</h4>'+parentInfo+'</div>';
+    html += '<div style="flex:1;min-width:0"><h4>'+idea.title+'</h4>'+parentInfo+'</div>';
     html += '<span style="padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;background:'+typeColor+'22;color:'+typeColor+';flex-shrink:0;margin-left:8px">'+typeLabel+'</span></div>';
     html += '<p>'+idea.desc+'</p>';
     html += '<div class="idea-meta" style="justify-content:space-between;align-items:center">'+tags+' '+dateStr+' '+refLink+'</div>';

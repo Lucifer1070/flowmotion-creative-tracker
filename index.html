@@ -388,8 +388,8 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
           <select id="afGameFilter" class="filter-btn" style="font-size:12px" onchange="renderAdFactory()"><option value="">All Games</option><option value="CC">CC - Cooking Crush</option><option value="CK">CK - Cooking Chaos</option><option value="CN">CN - Cooking Crunch</option><option value="KK">KK - Kitchen Craze</option><option value="GM">GM - Gym Mania</option><option value="MH">MH - My Hotel</option></select>
           <select id="afTypeFilter" class="filter-btn" style="font-size:12px" onchange="renderAdFactory()"><option value="">All Types</option><option value="Hook">Hook</option><option value="Body">Body</option><option value="CTA">CTA</option><option value="Final">Final Merged</option></select>
           <div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden">
-            <button id="afViewList" class="filter-btn" style="border:none;border-radius:0;padding:6px 10px;font-size:14px;background:var(--accent);color:#fff" onclick="setAFView('list')" title="List View">&#9776;</button>
-            <button id="afViewThumb" class="filter-btn" style="border:none;border-radius:0;padding:6px 10px;font-size:14px" onclick="setAFView('thumb')" title="Thumbnail View">&#9871;</button>
+            <button id="afViewList" class="filter-btn" style="border:none;border-radius:0;padding:6px 10px;font-size:14px" onclick="setAFView('list')" title="List View">&#9776;</button>
+            <button id="afViewThumb" class="filter-btn" style="border:none;border-radius:0;padding:6px 10px;font-size:14px;background:var(--accent);color:#fff" onclick="setAFView('thumb')" title="Thumbnail View">&#9871;</button>
           </div>
         </div>
       </div>
@@ -1603,7 +1603,7 @@ function renderAdFactory() {
     thumbHtml += '</div></div>';
   });
 
-  var viewMode = document.getElementById('afViewMode') ? document.getElementById('afViewMode').value : 'list';
+  var viewMode = document.getElementById('afViewMode') ? document.getElementById('afViewMode').value : 'thumb';
   document.getElementById('afTableBody').innerHTML = tHtml;
   var thumbContainer = document.getElementById('afThumbGrid');
   if (thumbContainer) {

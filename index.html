@@ -639,11 +639,11 @@ const IDEAS_KEY = 'fm_ideas';
 const TEAM_KEY = 'fm_team';
 const NETWORKS = ['Facebook','Google Ads','TikTok','Unity','AppLovin','IronSource','Mintegral','Apple'];
 
-// Role-based team: {name, role} where role = 'admin' or 'member'
+// Role-based team: {name, role} where role = 'admin', 'editor', or 'viewer'
 var ROLE_KEY = 'fm_team_roles';
 var currentUser = localStorage.getItem('fm_current_user') || 'Neeraj';
 let teamMembers = JSON.parse(localStorage.getItem(TEAM_KEY)) || ['Neeraj','Adnan'];
-var teamRoles = JSON.parse(localStorage.getItem(ROLE_KEY)) || {Neeraj:'admin',Adnan:'member'};
+var teamRoles = JSON.parse(localStorage.getItem(ROLE_KEY)) || {Neeraj:'admin',Adnan:'editor'};
 
 function formatShortDate(dateStr) {
   if (!dateStr) return '—';
@@ -652,10 +652,14 @@ function formatShortDate(dateStr) {
   return d.getDate() + ' ' + months[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2);
 }
 
-function isAdmin(name) { return (teamRoles[name||currentUser]||'member') === 'admin'; }
+function getUserRole(name) { return teamRoles[name||currentUser] || 'viewer'; }
+function isAdmin(name) { return getUserRole(name) === 'admin'; }
+function isEditor(name) { return getUserRole(name) === 'editor'; }
+function isViewer(name) { return getUserRole(name) === 'viewer'; }
 function isCurrentAdmin() { return isAdmin(currentUser); }
+function canEdit() { var r = getUserRole(currentUser); return r === 'admin' || r === 'editor'; }
 function saveRoles() { localStorage.setItem(ROLE_KEY, JSON.stringify(teamRoles)); debouncedSync(); }
-function setCurrentUser(name) { currentUser = name; localStorage.setItem('fm_current_user', name); renderAll(); if(currentPanelId) openSidePanel(currentPanelId); }
+function setCurrentUser(name) { currentUser = name; localStorage.setItem('fm_current_user', name); renderAll(); renderIdeas(); if(currentPanelId) openSidePanel(currentPanelId); }
 
 const defaultTasks = [
   {id:'CPT-001',game:'Cooking Chaos',name:'Chaos_PL01_ConveyorBelt_MINTEGRAL_20260310',type:'Playable Ad',status:'Ready',priority:3,assigned:['Neeraj'],d7roas:16.0,spend:120,cpi:0.00,installs:195,ctr:3.1,campaign:'',networks:['Facebook'],perfTag:'winner',desc:'Kitchen loads. 2 conveyor belts start moving with food items (burgers, fries, coffee, cake, drinks). Serve the customer quickly and achieve the goal.',comments:[],notes:'',created:'2026-03-10',archived:false},
@@ -1110,6 +1114,7 @@ function closeModal() { document.getElementById('modalOverlay').classList.remove
 function editTask(id) { openModal(id); }
 
 function saveTask() {
+  if (!canEdit()) { showToast('Viewers cannot add/edit tasks',true); return; }
   var eid = document.getElementById('editId').value;
   var assigned = modalAssigned.length > 0 ? modalAssigned.slice() : ['Neeraj'];
   var obj = {
@@ -1360,6 +1365,7 @@ function getIdeaFromForm() {
 }
 
 function saveIdeaOnly() {
+  if (!canEdit()) { showToast('Viewers cannot add/edit ideas',true); return; }
   var data = getIdeaFromForm();
   if (!data.title) { alert('Please enter a title'); return; }
   var eid = document.getElementById('ideaEditId').value;
@@ -1375,6 +1381,7 @@ function saveIdeaOnly() {
 }
 
 function saveIdeaAndAddTask() {
+  if (!canEdit()) { showToast('Viewers cannot add tasks',true); return; }
   var data = getIdeaFromForm();
   if (!data.title) { alert('Please enter a title'); return; }
   // Save idea
@@ -1429,6 +1436,7 @@ function ideaToTask(ideaId) {
 }
 
 function deleteIdea(ideaId) {
+  if (!isCurrentAdmin()) { showToast('Only admins can delete ideas',true); return; }
   if (!confirm('Delete this idea?')) return;
   ideas = ideas.filter(function(i){return i.id!==ideaId});
   save(); renderIdeas();
@@ -1884,29 +1892,35 @@ function openSidePanel(id) {
 
 function applyRoleRestrictions() {
   var admin = isCurrentAdmin();
-  // Description: admin can edit, members view-only
+  var editable = canEdit(); // admin or editor
+  // Description: admin & editor can edit, viewer read-only
   var descEl = document.getElementById('spDesc');
-  descEl.contentEditable = admin ? 'true' : 'false';
-  descEl.style.opacity = admin ? '1' : '0.85';
+  descEl.contentEditable = editable ? 'true' : 'false';
+  descEl.style.opacity = editable ? '1' : '0.85';
   // Toolbar and save/remove buttons
-  document.getElementById('spDescToolbar').style.display = admin ? 'flex' : 'none';
+  document.getElementById('spDescToolbar').style.display = editable ? 'flex' : 'none';
   var descActions = document.getElementById('spDescActions');
   if (descActions) {
     var btns = descActions.querySelectorAll('button');
-    btns.forEach(function(b) { if (b.textContent.indexOf('Save') !== -1 || b.textContent.indexOf('Remove') !== -1) b.style.display = admin ? 'inline' : 'none'; });
+    btns.forEach(function(b) {
+      if (b.textContent.indexOf('Save') !== -1) b.style.display = editable ? 'inline' : 'none';
+      if (b.textContent.indexOf('Remove') !== -1) b.style.display = admin ? 'inline' : 'none';
+    });
   }
-  document.getElementById('spDescLock').style.display = admin ? 'none' : 'inline';
-  // Delete task button
+  document.getElementById('spDescLock').style.display = editable ? 'none' : 'inline';
+  // Delete task button - admin only
   var delBtn = document.getElementById('spDeleteTaskBtn');
   if (delBtn) delBtn.style.display = admin ? 'inline' : 'none';
-  // Creative Link edit
+  // Creative Link edit - admin only
   var clEditBtn = document.getElementById('spCreativeLinkEditBtn');
   if (clEditBtn) clEditBtn.style.display = admin ? 'inline' : 'none';
-  // Add Task button
+  // Performance fields - admin only
+  document.querySelectorAll('#perfSection input, #perfSection select').forEach(function(el) { el.disabled = !admin; });
+  // Add Task button - admin & editor
   var addBtns = document.querySelectorAll('.btn-add');
   addBtns.forEach(function(btn) {
     if (btn.textContent.indexOf('Add Task') !== -1) {
-      btn.style.display = admin ? 'flex' : 'none';
+      btn.style.display = editable ? 'flex' : 'none';
     }
   });
 }
@@ -2086,6 +2100,7 @@ function saveDescription() {
 }
 
 function deleteTask() {
+  if (!isCurrentAdmin()) { showToast('Only admins can delete tasks',true); return; }
   if (!currentPanelId) return;
   var t = tasks.find(function(x){return x.id===currentPanelId});
   if (!t) return;
@@ -2201,6 +2216,7 @@ function toggleStatusDropdown(cell, id) {
   _openDropdown = dd;
 }
 function changeStatus(id, newStatus) {
+  if (!canEdit()) { showToast('Viewers cannot change status',true); return; }
   var t = tasks.find(function(x){return x.id===id});
   if (!t) return;
   if (newStatus === 'Archive') { t.archived = true; }
@@ -2359,16 +2375,16 @@ function toggleUserMenu() {
   else { menu.style.display = 'none'; }
 }
 function renderUserMenu() {
+  var ROLE_COLORS = {admin:{color:'var(--orange)',bg:'rgba(245,158,11,.15)'},editor:{color:'var(--accent)',bg:'rgba(59,130,246,.15)'},viewer:{color:'var(--muted)',bg:'rgba(100,116,139,.15)'}};
   var listHtml = '';
   teamMembers.forEach(function(name) {
-    var role = teamRoles[name] || 'member';
+    var role = teamRoles[name] || 'viewer';
     var isCurrent = name === currentUser;
-    var roleColor = role === 'admin' ? 'var(--orange)' : 'var(--muted)';
-    var roleBg = role === 'admin' ? 'rgba(245,158,11,.15)' : 'rgba(100,116,139,.15)';
+    var rc = ROLE_COLORS[role] || ROLE_COLORS.viewer;
     listHtml += '<div style="padding:8px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:background .15s;'+(isCurrent?'background:rgba(59,130,246,.1);':'')+ '" onmouseover="this.style.background=\'rgba(59,130,246,.08)\'" onmouseout="this.style.background=\''+(isCurrent?'rgba(59,130,246,.1)':'')+ '\'" onclick="setCurrentUser(\''+name+'\');document.getElementById(\'userMenu\').style.display=\'none\'">';
     listHtml += '<span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff">'+name.slice(0,2).toUpperCase()+'</span>';
     listHtml += '<div style="flex:1"><div style="font-size:13px;color:#f1f5f9;font-weight:'+(isCurrent?'600':'400')+'">'+name+(isCurrent?' &#10003;':'')+'</div>';
-    listHtml += '<span style="font-size:10px;padding:1px 6px;border-radius:3px;background:'+roleBg+';color:'+roleColor+';font-weight:600;text-transform:uppercase">'+role+'</span></div>';
+    listHtml += '<span style="font-size:10px;padding:1px 6px;border-radius:3px;background:'+rc.bg+';color:'+rc.color+';font-weight:600;text-transform:uppercase">'+role+'</span></div>';
     listHtml += '</div>';
   });
   document.getElementById('userMenuList').innerHTML = listHtml;
@@ -2376,13 +2392,14 @@ function renderUserMenu() {
   var mgmtHtml = '';
   if (isCurrentAdmin()) {
     teamMembers.forEach(function(name) {
-      var role = teamRoles[name] || 'member';
+      var role = teamRoles[name] || 'viewer';
       mgmtHtml += '<div style="padding:6px 14px;display:flex;align-items:center;gap:8px;font-size:12px">';
       mgmtHtml += '<span style="flex:1;color:var(--text)">'+name+'</span>';
       if (name !== currentUser) {
         mgmtHtml += '<select style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:4px;font-size:11px" onchange="changeRole(\''+name+'\',this.value)">';
         mgmtHtml += '<option value="admin"'+(role==='admin'?' selected':'')+'>Admin</option>';
-        mgmtHtml += '<option value="member"'+(role==='member'?' selected':'')+'>Member</option>';
+        mgmtHtml += '<option value="editor"'+(role==='editor'?' selected':'')+'>Editor</option>';
+        mgmtHtml += '<option value="viewer"'+(role==='viewer'?' selected':'')+'>Viewer</option>';
         mgmtHtml += '</select>';
         mgmtHtml += '<span style="cursor:pointer;color:var(--red);font-size:14px" onclick="event.stopPropagation();removeMember(\''+name+'\')" title="Remove">&times;</span>';
       } else {
@@ -2390,20 +2407,22 @@ function renderUserMenu() {
       }
       mgmtHtml += '</div>';
     });
-    mgmtHtml += '<div style="padding:6px 14px;display:flex;gap:6px"><input id="newMemberInput" style="flex:1;padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;outline:none" placeholder="Add member..." onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\'){event.stopPropagation();addNewMember()}"><select id="newMemberRole" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:4px;font-size:11px" onclick="event.stopPropagation()"><option value="member">Member</option><option value="admin">Admin</option></select><button style="padding:4px 8px;background:var(--accent);color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer" onclick="event.stopPropagation();addNewMember()">+</button></div>';
+    mgmtHtml += '<div style="padding:6px 14px;display:flex;gap:6px"><input id="newMemberInput" style="flex:1;padding:4px 8px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;outline:none" placeholder="Add member..." onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\'){event.stopPropagation();addNewMember()}"><select id="newMemberRole" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:2px 6px;border-radius:4px;font-size:11px" onclick="event.stopPropagation()"><option value="viewer">Viewer</option><option value="editor">Editor</option><option value="admin">Admin</option></select><button style="padding:4px 8px;background:var(--accent);color:#fff;border:none;border-radius:4px;font-size:11px;cursor:pointer" onclick="event.stopPropagation();addNewMember()">+</button></div>';
   } else {
     mgmtHtml += '<div style="padding:8px 14px;font-size:12px;color:var(--muted)">&#128274; Only admins can manage team</div>';
   }
   document.getElementById('teamMgmtSection').innerHTML = mgmtHtml;
 }
-function changeRole(name, role) { teamRoles[name] = role; saveRoles(); renderUserMenu(); }
+function changeRole(name, role) { if (!isCurrentAdmin()) return; teamRoles[name] = role; saveRoles(); renderUserMenu(); }
 function removeMember(name) {
+  if (!isCurrentAdmin()) return;
   if (!confirm('Remove '+name+' from the team?')) return;
   teamMembers = teamMembers.filter(function(n){return n!==name});
   delete teamRoles[name];
   save(); saveRoles(); renderUserMenu();
 }
 function addNewMember() {
+  if (!isCurrentAdmin()) return;
   var inp = document.getElementById('newMemberInput');
   var name = inp.value.trim();
   if (!name) return;
@@ -2437,13 +2456,20 @@ function renderAll() {
   updateSubtitle();
   updateAvatarDisplay();
   // Apply global role restrictions
-  var admin = isCurrentAdmin();
+  var editable = canEdit();
   document.querySelectorAll('.btn-add').forEach(function(btn) {
-    if (btn.textContent.indexOf('Add Task') !== -1 || btn.textContent.indexOf('New Idea') !== -1) {
-      btn.style.opacity = admin ? '1' : '0.5';
-      btn.style.pointerEvents = admin ? 'auto' : 'none';
+    if (btn.textContent.indexOf('Add Task') !== -1 || btn.textContent.indexOf('New Idea') !== -1 || btn.textContent.indexOf('Add Asset') !== -1) {
+      btn.style.opacity = editable ? '1' : '0.5';
+      btn.style.pointerEvents = editable ? 'auto' : 'none';
     }
   });
+  // Idea Vault: hide Add New Idea card for viewers
+  var addIdeaCard = document.querySelector('.add-idea-card');
+  if (addIdeaCard) addIdeaCard.style.display = editable ? '' : 'none';
+  // Idea cards: hide delete & add-to-task buttons for viewers
+  if (!editable) {
+    document.querySelectorAll('#ideaGrid button').forEach(function(b) { b.style.display = 'none'; });
+  }
 }
 </script>
 </body>

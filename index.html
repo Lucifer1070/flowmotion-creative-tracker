@@ -1447,8 +1447,16 @@ var GDRIVE_KEY = 'fm_gdrive_config';
 var AF_KEY = 'fm_ad_factory';
 var DRIVE_SYNC_KEY = 'fm_drive_sync_data';
 var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzST3WDxeP1qq_VVonPx8IpbUl34h0WRJe5RBs60v0DBmDtgGYF9wuhu0DVW-9Phw/exec';
+var DEFAULT_DRIVE_FOLDER = 'https://drive.google.com/drive/folders/1a7GZ0OPO_BJaAIB92mqI0Zv4tAQgkSDN?usp=drive_link';
 var adAssets = JSON.parse(localStorage.getItem(AF_KEY)) || [];
 var driveSyncData = JSON.parse(localStorage.getItem(DRIVE_SYNC_KEY)||'null');
+// Auto-connect Drive if not configured
+(function initDriveConfig() {
+  var config = JSON.parse(localStorage.getItem(GDRIVE_KEY)||'null');
+  if (!config) {
+    localStorage.setItem(GDRIVE_KEY, JSON.stringify({folder:DEFAULT_DRIVE_FOLDER,connected:true,syncedAt:null}));
+  }
+})();
 var GAME_CODES = {'CC':'Cooking Crush','CK':'Cooking Chaos','CN':'Cooking Crunch','KK':'Kitchen Craze','GM':'Gym Mania','MH':'My Hotel'};
 var GAME_COLORS = {'CC':'#f59e0b','CK':'#ef4444','CN':'#a855f7','KK':'#10b981','GM':'#ec4899','MH':'#3b82f6'};
 var FOLDER_COLORS = {'Hook':'#ef4444','Body':'#f59e0b','CTA':'#10b981','Final':'#3b82f6'};

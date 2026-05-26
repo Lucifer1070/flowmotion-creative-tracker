@@ -447,8 +447,6 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
         </div>
         <button type="button" onclick="document.getElementById('fNotes').focus();document.execCommand('hiliteColor',false,'rgba(245,158,11,0.3)')" title="Highlight" style="padding:3px 7px;background:rgba(245,158,11,.2);border:1px solid var(--border);border-radius:4px;color:var(--orange);cursor:pointer;font-size:11px;font-weight:600">Hi</button>
         <button type="button" onclick="document.getElementById('fNotes').focus();document.execCommand('removeFormat')" title="Clear" style="padding:3px 7px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px">&#10005;</button>
-        <span style="width:1px;background:var(--border);margin:0 3px;align-self:stretch"></span>
-        <button type="button" id="modalRefineBtn" onclick="refineDescription('modal')" title="AI Refine" style="padding:3px 10px;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;border-radius:4px;color:#fff;cursor:pointer;font-size:11px;font-weight:600;display:flex;align-items:center;gap:4px">&#10024; Refine</button>
       </div>
       <div id="fNotes" contenteditable="true" style="width:100%;min-height:120px;background:var(--bg);border:1px solid var(--border);border-radius:0 0 6px 6px;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;padding:10px;outline:none;line-height:1.6;overflow-y:auto;max-height:200px" placeholder="Describe the creative concept, variation details..."></div>
     </div>
@@ -595,8 +593,6 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
         </div>
         <button class="desc-tb-btn" onclick="execDescHighlight()" title="Highlight" style="padding:4px 8px;background:rgba(245,158,11,.2);border:1px solid var(--border);border-radius:4px;color:var(--orange);cursor:pointer;font-size:11px;font-weight:600">&#9632; Hi</button>
         <button class="desc-tb-btn" onclick="execDescCmd('removeFormat')" title="Clear Formatting" style="padding:4px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:11px">&#10005;</button>
-        <span style="width:1px;background:var(--border);margin:0 4px;align-self:stretch"></span>
-        <button class="desc-tb-btn" id="spRefineBtn" onclick="refineDescription('sp')" title="AI Refine" style="padding:4px 10px;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;border-radius:4px;color:#fff;cursor:pointer;font-size:11px;font-weight:600;display:flex;align-items:center;gap:4px">&#10024; Refine</button>
       </div>
       <div id="spDesc" contenteditable="true" style="width:100%;min-height:80px;background:var(--bg);border:1px solid var(--border);border-radius:0 0 6px 6px;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:13px;padding:10px;outline:none;line-height:1.6;overflow-y:auto;max-height:200px" placeholder="Add description..."></div>
       <div class="sp-desc-actions" id="spDescActions"><button class="btn-sp-save" onclick="saveDescription()">Save Description</button><button class="btn-sp-remove" onclick="removeDescription()">Remove</button><button id="spDeleteTaskBtn" style="background:#7f1d1d;color:#fca5a5;margin-left:auto" onclick="deleteTask()">&#128465; Delete Task</button></div>
@@ -1923,58 +1919,6 @@ function renderCreativeLink(t) {
   editBtn.style.display = isCurrentAdmin() ? 'inline' : 'none';
 }
 
-// ============ AI REFINE ============
-function refineDescription(source) {
-  var descEl, btn, rawText;
-  if (source === 'sp') {
-    descEl = document.getElementById('spDesc');
-    btn = document.getElementById('spRefineBtn');
-    rawText = descEl.innerText.trim();
-  } else {
-    descEl = document.getElementById('fNotes');
-    btn = document.getElementById('modalRefineBtn');
-    rawText = descEl.innerText.trim();
-  }
-  if (!rawText) { alert('Description mein kuch likho pehle!'); return; }
-  // Get context from current task
-  var context = '';
-  if (source === 'sp' && currentPanelId) {
-    var t = tasks.find(function(x){return x.id===currentPanelId});
-    if (t) context = 'Game: ' + t.game + ', Ad Type: ' + t.type + ', Creative Type: ' + (t.creativeType||'New Concept') + (t.parentAd ? ', Variation of: ' + t.parentAd : '');
-  }
-  // Show loading state
-  var origHtml = btn.innerHTML;
-  btn.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block">&#10024;</span> Refining...';
-  btn.style.opacity = '0.7';
-  btn.style.pointerEvents = 'none';
-
-  fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    headers: {'Content-Type': 'text/plain'},
-    body: JSON.stringify({action: 'refine', text: rawText, context: context})
-  })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (data.success && data.refined) {
-      descEl.innerHTML = data.refined.replace(/\n/g, '<br>');
-      // Auto-save if side panel
-      if (source === 'sp' && currentPanelId) {
-        var t = tasks.find(function(x){return x.id===currentPanelId});
-        if (t) { t.desc = descEl.innerHTML; t.notes = descEl.innerHTML; save(); }
-      }
-    } else {
-      alert('Refine failed: ' + (data.error || 'Unknown error') + '\n\nMake sure Apps Script is updated with the refine function and Gemini API key is set.');
-    }
-  })
-  .catch(function(err) {
-    alert('Could not connect to AI service.\n\n' + err.message + '\n\nCheck: Apps Script deployed with refine function + Gemini API key in Script Properties.');
-  })
-  .finally(function() {
-    btn.innerHTML = origHtml;
-    btn.style.opacity = '1';
-    btn.style.pointerEvents = 'auto';
-  });
-}
 
 // Rich text toolbar functions
 function execDescCmd(cmd, val) {

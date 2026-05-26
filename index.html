@@ -260,6 +260,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
   <div class="topbar">
     <div class="topbar-left"><h2 id="viewTitle">All Tasks</h2><p id="viewSubtitle">10 creatives - Flowmotion Entertainment</p></div>
     <div class="topbar-right">
+      <div id="syncBadge" style="font-size:11px;padding:4px 10px;background:var(--card);border:1px solid var(--border);border-radius:6px;display:flex;align-items:center;gap:4px;white-space:nowrap"></div>
       <div class="date-display" id="dateDisplay"></div>
       <div style="position:relative">
         <div class="avatar" id="userAvatar" style="cursor:pointer" onclick="toggleUserMenu()" title="Switch user"></div>
@@ -626,7 +627,7 @@ function formatShortDate(dateStr) {
 
 function isAdmin(name) { return (teamRoles[name||currentUser]||'member') === 'admin'; }
 function isCurrentAdmin() { return isAdmin(currentUser); }
-function saveRoles() { localStorage.setItem(ROLE_KEY, JSON.stringify(teamRoles)); }
+function saveRoles() { localStorage.setItem(ROLE_KEY, JSON.stringify(teamRoles)); debouncedSync(); }
 function setCurrentUser(name) { currentUser = name; localStorage.setItem('fm_current_user', name); renderAll(); if(currentPanelId) openSidePanel(currentPanelId); }
 
 const defaultTasks = [
@@ -681,12 +682,120 @@ document.addEventListener('DOMContentLoaded', function() {
     renderAll();
   }
   attachEvents();
+  // Fetch latest data from Google Sheet (background sync)
+  fetchFromSheet();
 });
 
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
   localStorage.setItem(IDEAS_KEY, JSON.stringify(ideas));
   localStorage.setItem(TEAM_KEY, JSON.stringify(teamMembers));
+  debouncedSync();
+}
+
+// ============ GOOGLE SHEET SYNC ============
+var SYNC_URL = 'https://script.google.com/macros/s/AKfycbzST3WDxeP1qq_VVonPx8IpbUl34h0WRJe5RBs60v0DBmDtgGYF9wuhu0DVW-9Phw/exec';
+var syncTimer = null;
+var sheetConnected = false;
+
+function debouncedSync() {
+  if (syncTimer) clearTimeout(syncTimer);
+  syncTimer = setTimeout(function(){ syncToSheet(); }, 2000);
+}
+
+function syncToSheet(showMsg) {
+  updateSyncBadge('syncing');
+  fetch(SYNC_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain'},
+    body: JSON.stringify({
+      action: 'syncTasks',
+      tasks: tasks,
+      ideas: ideas,
+      team: teamMembers,
+      roles: teamRoles
+    })
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if (data.success) {
+      sheetConnected = true;
+      updateSyncBadge('synced');
+      if (showMsg) showToast('Exported ' + data.count + ' tasks to Google Sheet!');
+    } else {
+      updateSyncBadge('error');
+      if (showMsg) showToast('Sync failed: ' + (data.error||'Unknown'), true);
+    }
+  })
+  .catch(function(err){
+    updateSyncBadge('error');
+    if (showMsg) showToast('Could not connect to Sheet', true);
+  });
+}
+
+function fetchFromSheet(callback) {
+  updateSyncBadge('syncing');
+  fetch(SYNC_URL + '?action=getTasks')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data.success && data.tasks && data.tasks.length > 0) {
+        tasks = data.tasks;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        if (data.ideas && data.ideas.length > 0) {
+          ideas = data.ideas;
+          localStorage.setItem(IDEAS_KEY, JSON.stringify(ideas));
+        }
+        if (data.team && data.team.length > 0) {
+          teamMembers = data.team;
+          localStorage.setItem(TEAM_KEY, JSON.stringify(teamMembers));
+        }
+        if (data.roles && Object.keys(data.roles).length > 0) {
+          teamRoles = data.roles;
+          localStorage.setItem(ROLE_KEY, JSON.stringify(teamRoles));
+        }
+        sheetConnected = true;
+        updateSyncBadge('synced');
+        populateFilters();
+        renderAll();
+      } else if (data.success && (!data.tasks || data.tasks.length === 0)) {
+        // Sheet is empty — show export option
+        sheetConnected = true;
+        updateSyncBadge('empty');
+      } else {
+        updateSyncBadge('error');
+      }
+      if (callback) callback();
+    })
+    .catch(function(err){
+      updateSyncBadge('offline');
+      if (callback) callback();
+    });
+}
+
+function exportToSheet() {
+  if (!confirm('Sab ' + tasks.length + ' tasks Google Sheet me export kare?')) return;
+  syncToSheet(true);
+}
+
+function updateSyncBadge(state) {
+  var el = document.getElementById('syncBadge');
+  if (!el) return;
+  var icons = {
+    syncing: '<span style="animation:spin 1s linear infinite;display:inline-block">&#8635;</span> Syncing...',
+    synced: '<span style="color:#10b981">&#10003;</span> Sheet Synced',
+    error: '<span style="color:#ef4444">&#10007;</span> Sync Error',
+    offline: '<span style="color:#f59e0b">&#9888;</span> Offline',
+    empty: '<span style="color:#f59e0b">&#9888;</span> Sheet Empty <button onclick="exportToSheet()" style="margin-left:6px;padding:2px 8px;background:var(--accent);border:none;border-radius:4px;color:#fff;cursor:pointer;font-size:11px">Export Now</button>'
+  };
+  el.innerHTML = icons[state] || '';
+}
+
+function showToast(msg, isError) {
+  var t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:99999;color:#fff;background:'+(isError?'#ef4444':'#10b981')+';box-shadow:0 4px 12px rgba(0,0,0,.3);transition:opacity .3s';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ t.remove(); },300); }, 3000);
 }
 
 function populateFilters() {

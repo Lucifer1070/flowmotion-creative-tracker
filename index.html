@@ -410,6 +410,34 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
   </div>
 </div>
 
+<!-- Identity Picker Overlay -->
+<div id="identityOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;align-items:center;justify-content:center">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:360px;width:90%;text-align:center">
+    <div style="width:56px;height:56px;background:linear-gradient(135deg,#3b82f6,#1e40af);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:18px;color:#fff;margin:0 auto 16px">FME</div>
+    <h2 style="font-size:18px;color:#f1f5f9;margin-bottom:4px">FME Creative Tracker</h2>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:24px">Select your name to continue</p>
+    <div id="identityList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
+    <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:8px">
+      <button onclick="loginAsGuest()" style="padding:8px 20px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;width:100%">Continue as Guest (View Only)</button>
+    </div>
+  </div>
+</div>
+
+<!-- Admin PIN Modal -->
+<div id="pinOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2100;align-items:center;justify-content:center">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;max-width:300px;width:90%;text-align:center">
+    <div style="font-size:24px;margin-bottom:8px">&#128274;</div>
+    <h3 style="font-size:15px;color:#f1f5f9;margin-bottom:4px">Admin Access</h3>
+    <p style="font-size:11px;color:var(--muted);margin-bottom:16px">Enter PIN to unlock admin features</p>
+    <input id="pinInput" type="password" maxlength="6" placeholder="Enter PIN" style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:#f1f5f9;font-size:16px;text-align:center;letter-spacing:8px;outline:none;margin-bottom:8px" onkeydown="if(event.key==='Enter')verifyPin()">
+    <p id="pinError" style="font-size:11px;color:var(--red);margin-bottom:12px;display:none">Incorrect PIN</p>
+    <div style="display:flex;gap:8px">
+      <button onclick="closePinModal()" style="flex:1;padding:8px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer">Cancel</button>
+      <button onclick="verifyPin()" style="flex:1;padding:8px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:12px;cursor:pointer;font-weight:600">Unlock</button>
+    </div>
+  </div>
+</div>
+
 <!-- Add/Edit Modal -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
@@ -652,7 +680,10 @@ const NETWORKS = ['Facebook','Google Ads','TikTok','Unity','AppLovin','IronSourc
 
 // Role-based team: {name, role} where role = 'admin', 'editor', or 'viewer'
 var ROLE_KEY = 'fm_team_roles';
-var currentUser = localStorage.getItem('fm_current_user') || 'Neeraj';
+var ADMIN_PIN_HASH = '14739af6b6a608ef0d4fc4fd9cb54f8f0cc463f66239a1da5b3512b54f65cb5c';
+var adminUnlocked = sessionStorage.getItem('fm_admin_unlocked') === 'true';
+var currentUser = sessionStorage.getItem('fm_current_user') || '';
+var identityChosen = !!currentUser;
 let teamMembers = JSON.parse(localStorage.getItem(TEAM_KEY)) || ['Neeraj','Adnan'];
 var teamRoles = JSON.parse(localStorage.getItem(ROLE_KEY)) || {Neeraj:'admin',Adnan:'editor'};
 
@@ -667,10 +698,100 @@ function getUserRole(name) { return teamRoles[name||currentUser] || 'viewer'; }
 function isAdmin(name) { return getUserRole(name) === 'admin'; }
 function isEditor(name) { return getUserRole(name) === 'editor'; }
 function isViewer(name) { return getUserRole(name) === 'viewer'; }
-function isCurrentAdmin() { return isAdmin(currentUser); }
-function canEdit() { var r = getUserRole(currentUser); return r === 'admin' || r === 'editor'; }
+function isCurrentAdmin() { return isAdmin(currentUser) && adminUnlocked; }
+function canEdit() { if (!identityChosen) return false; var r = getUserRole(currentUser); return r === 'admin' || r === 'editor'; }
 function saveRoles() { localStorage.setItem(ROLE_KEY, JSON.stringify(teamRoles)); debouncedSync(); }
-function setCurrentUser(name) { currentUser = name; localStorage.setItem('fm_current_user', name); renderAll(); renderIdeas(); if(currentPanelId) openSidePanel(currentPanelId); }
+function setCurrentUser(name) { currentUser = name; sessionStorage.setItem('fm_current_user', name); identityChosen = true; updateAvatarDisplay(); applyRoleRestrictions(); renderAll(); renderIdeas(); if(currentPanelId) openSidePanel(currentPanelId); }
+
+// ============ IDENTITY & PIN ============
+async function hashPin(pin) {
+  var enc = new TextEncoder().encode(pin);
+  var buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0')}).join('');
+}
+
+function showIdentityPicker() {
+  var list = document.getElementById('identityList');
+  var html = '';
+  teamMembers.forEach(function(name) {
+    var role = teamRoles[name] || 'viewer';
+    var roleColor = role==='admin'?'var(--orange)':(role==='editor'?'var(--accent)':'var(--muted)');
+    var roleBg = role==='admin'?'rgba(245,158,11,.15)':(role==='editor'?'rgba(59,130,246,.15)':'rgba(100,116,139,.15)');
+    html += '<button onclick="selectIdentity(\''+name+'\')" style="padding:10px 16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:#f1f5f9;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .15s;text-align:left" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">';
+    html += '<span style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0">'+name.slice(0,2).toUpperCase()+'</span>';
+    html += '<span style="flex:1;font-weight:500">'+name+'</span>';
+    html += '<span style="font-size:9px;padding:2px 8px;border-radius:4px;background:'+roleBg+';color:'+roleColor+';font-weight:600;text-transform:uppercase">'+role+'</span>';
+    html += '</button>';
+  });
+  list.innerHTML = html;
+  document.getElementById('identityOverlay').style.display = 'flex';
+}
+
+function selectIdentity(name) {
+  document.getElementById('identityOverlay').style.display = 'none';
+  if (isAdmin(name)) {
+    pendingIdentityName = name;
+    showPinModal();
+  } else {
+    setCurrentUser(name);
+    renderAll(); renderIdeas();
+  }
+}
+var pendingIdentityName = '';
+
+function loginAsGuest() {
+  currentUser = 'Guest';
+  identityChosen = true;
+  sessionStorage.setItem('fm_current_user', 'Guest');
+  document.getElementById('identityOverlay').style.display = 'none';
+  updateAvatarDisplay(); applyRoleRestrictions();
+  renderAll(); renderIdeas();
+}
+
+function showPinModal() {
+  document.getElementById('pinOverlay').style.display = 'flex';
+  document.getElementById('pinInput').value = '';
+  document.getElementById('pinError').style.display = 'none';
+  setTimeout(function(){ document.getElementById('pinInput').focus(); }, 100);
+}
+function closePinModal() {
+  document.getElementById('pinOverlay').style.display = 'none';
+  if (pendingIdentityName) {
+    // Login as the user but without admin privileges
+    setCurrentUser(pendingIdentityName);
+    pendingIdentityName = '';
+    renderAll(); renderIdeas();
+  }
+}
+async function verifyPin() {
+  var pin = document.getElementById('pinInput').value;
+  var hash = await hashPin(pin);
+  if (hash === ADMIN_PIN_HASH) {
+    adminUnlocked = true;
+    sessionStorage.setItem('fm_admin_unlocked', 'true');
+    document.getElementById('pinOverlay').style.display = 'none';
+    if (pendingIdentityName) {
+      setCurrentUser(pendingIdentityName);
+      pendingIdentityName = '';
+    }
+    showToast('Admin access unlocked!');
+    renderAll(); renderIdeas();
+  } else {
+    document.getElementById('pinError').style.display = 'block';
+    document.getElementById('pinInput').value = '';
+    document.getElementById('pinInput').focus();
+  }
+}
+
+function requireAdmin(callback) {
+  if (isCurrentAdmin()) { callback(); return; }
+  if (isAdmin(currentUser) && !adminUnlocked) {
+    pendingIdentityName = '';
+    showPinModal();
+    return;
+  }
+  showToast('Only admins can do this', true);
+}
 
 const defaultTasks = [
   {id:'CPT-001',game:'Cooking Chaos',name:'Chaos_PL01_ConveyorBelt_MINTEGRAL_20260310',type:'Playable Ad',status:'Ready',priority:3,assigned:['Neeraj'],d7roas:16.0,spend:120,cpi:0.00,installs:195,ctr:3.1,campaign:'',networks:['Facebook'],perfTag:'winner',desc:'Kitchen loads. 2 conveyor belts start moving with food items (burgers, fries, coffee, cake, drinks). Serve the customer quickly and achieve the goal.',comments:[],notes:'',created:'2026-03-10',archived:false},
@@ -704,6 +825,10 @@ let searchQuery = '';
 document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
   populateFilters();
+  // Show identity picker if no session
+  if (!identityChosen) {
+    showIdentityPicker();
+  }
   // Restore last active tab from localStorage
   var savedView = localStorage.getItem('fm_active_view');
   var savedMyOnly = localStorage.getItem('fm_active_myonly') === 'true';
@@ -724,6 +849,7 @@ document.addEventListener('DOMContentLoaded', function() {
     renderAll();
   }
   attachEvents();
+  updateAvatarDisplay();
   // Fetch latest data from Google Sheet (background sync)
   fetchFromSheet();
 });
@@ -2534,18 +2660,20 @@ function toggleUserMenu() {
 }
 function renderUserMenu() {
   var ROLE_COLORS = {admin:{color:'var(--orange)',bg:'rgba(245,158,11,.15)'},editor:{color:'var(--accent)',bg:'rgba(59,130,246,.15)'},viewer:{color:'var(--muted)',bg:'rgba(100,116,139,.15)'}};
-  var listHtml = '';
-  teamMembers.forEach(function(name) {
-    var role = teamRoles[name] || 'viewer';
-    var isCurrent = name === currentUser;
-    var rc = ROLE_COLORS[role] || ROLE_COLORS.viewer;
-    listHtml += '<div style="padding:8px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:background .15s;'+(isCurrent?'background:rgba(59,130,246,.1);':'')+ '" onmouseover="this.style.background=\'rgba(59,130,246,.08)\'" onmouseout="this.style.background=\''+(isCurrent?'rgba(59,130,246,.1)':'')+ '\'" onclick="setCurrentUser(\''+name+'\');document.getElementById(\'userMenu\').style.display=\'none\'">';
-    listHtml += '<span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff">'+name.slice(0,2).toUpperCase()+'</span>';
-    listHtml += '<div style="flex:1"><div style="font-size:13px;color:#f1f5f9;font-weight:'+(isCurrent?'600':'400')+'">'+name+(isCurrent?' &#10003;':'')+'</div>';
-    listHtml += '<span style="font-size:10px;padding:1px 6px;border-radius:3px;background:'+rc.bg+';color:'+rc.color+';font-weight:600;text-transform:uppercase">'+role+'</span></div>';
-    listHtml += '</div>';
-  });
+  var myRole = getUserRole(currentUser);
+  var rc = ROLE_COLORS[myRole] || ROLE_COLORS.viewer;
+
+  // Current user identity section
+  var listHtml = '<div style="padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)">';
+  listHtml += '<span style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff">'+currentUser.slice(0,2).toUpperCase()+'</span>';
+  listHtml += '<div style="flex:1"><div style="font-size:13px;color:#f1f5f9;font-weight:600">'+currentUser+'</div>';
+  listHtml += '<span style="font-size:10px;padding:1px 6px;border-radius:3px;background:'+rc.bg+';color:'+rc.color+';font-weight:600;text-transform:uppercase">'+myRole+'</span></div></div>';
+
+  // Switch identity button
+  listHtml += '<div style="padding:6px 14px"><button onclick="logoutAndPickIdentity()" style="width:100%;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;justify-content:center">&#128260; Switch Identity</button></div>';
+
   document.getElementById('userMenuList').innerHTML = listHtml;
+
   // Team management (admin only)
   var mgmtHtml = '';
   if (isCurrentAdmin()) {
@@ -2595,9 +2723,18 @@ function addNewMember() {
 function updateAvatarDisplay() {
   var av = document.getElementById('userAvatar');
   if (av) {
-    av.textContent = currentUser.slice(0,2).toUpperCase();
-    av.title = currentUser + ' (' + (teamRoles[currentUser]||'member') + ')';
+    av.textContent = currentUser ? currentUser.slice(0,2).toUpperCase() : '?';
+    av.title = currentUser ? currentUser + ' (' + (getUserRole(currentUser)) + ')' : 'Not logged in';
   }
+}
+function logoutAndPickIdentity() {
+  document.getElementById('userMenu').style.display = 'none';
+  sessionStorage.removeItem('fm_current_user');
+  sessionStorage.removeItem('fm_admin_unlocked');
+  currentUser = '';
+  identityChosen = false;
+  adminUnlocked = false;
+  showIdentityPicker();
 }
 // Close user menu on outside click
 document.addEventListener('click', function(e) {

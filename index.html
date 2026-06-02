@@ -2291,7 +2291,10 @@ function changeStatus(id, newStatus) {
   else { t.archived = false; t.status = newStatus; }
   // Discord notify: only Neeraj, only when changing TO Ready, only once per task
   if (newStatus === 'Ready' && oldStatus !== 'Ready' && currentUser === 'Neeraj') {
-    sendDiscordReadyNotify(t);
+    pendingDiscordQueue.push(Object.assign({}, t));
+    if (discordQueueTimer) clearTimeout(discordQueueTimer);
+    discordQueueTimer = setTimeout(flushDiscordQueue, 3000);
+    showToast('Discord notify queued — sending in 3s...');
   }
   save(); renderTable();
   if (_openDropdown) { _openDropdown.classList.remove('open'); _openDropdown = null; }
@@ -2299,23 +2302,52 @@ function changeStatus(id, newStatus) {
 
 // ============ DISCORD WEBHOOK ============
 var DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1511332125377429544/uRB5VG85MP8IKFU3pxlFS1keSDBXBvCOvO-h1Sm2CSJTlEKo1l3udX1TptarnAFgXT2Y';
-function sendDiscordReadyNotify(t) {
-  var dueDateStr = t.dueDate ? '📅 Due: ' + formatShortDate(t.dueDate) : '';
-  // Strip HTML from description for short brief
+var pendingDiscordQueue = [];
+var discordQueueTimer = null;
+
+function getTaskBrief(t) {
   var tmp = document.createElement('div');
   tmp.innerHTML = t.desc || t.notes || '';
-  var plainDesc = tmp.textContent || tmp.innerText || '';
-  var brief = plainDesc.trim().replace(/\s+/g,' ');
-  if (brief.length > 150) brief = brief.substring(0,147) + '...';
-  var briefLine = brief ? '\n> 📝 *' + brief + '*' : '';
+  var plain = (tmp.textContent || tmp.innerText || '').trim().replace(/\s+/g,' ');
+  return plain.length > 120 ? plain.substring(0,117) + '...' : plain;
+}
 
-  var msg = '<@938110096397967381>\n\n'
-    + '🎬 **New Creative Ready!**\n'
-    + '> **' + t.id + '** | ' + t.game + ' | **' + t.name + '**\n'
-    + '> ✅ Ready | Assigned: ' + (t.assigned||[]).join(', ')
-    + (dueDateStr ? ' | ' + dueDateStr : '') + '\n'
-    + briefLine + '\n\n'
-    + '🔗 [Open Dashboard](https://lucifer1070.github.io/flowmotion-creative-tracker/)\n\n'
+function flushDiscordQueue() {
+  discordQueueTimer = null;
+  if (pendingDiscordQueue.length === 0) return;
+  var taskList = pendingDiscordQueue.slice();
+  pendingDiscordQueue = [];
+
+  // Build confirmation message
+  var confirmMsg = 'Send Discord notification for ' + taskList.length + ' task(s)?\n\n';
+  taskList.forEach(function(t) { confirmMsg += '• ' + t.id + ' — ' + t.name + '\n'; });
+  if (!confirm(confirmMsg)) {
+    showToast('Discord notification cancelled');
+    return;
+  }
+
+  var msg = '<@938110096397967381>\n\n';
+  if (taskList.length === 1) {
+    var t = taskList[0];
+    var dueDateStr = t.dueDate ? ' | 📅 Due: ' + formatShortDate(t.dueDate) : '';
+    var brief = getTaskBrief(t);
+    var briefLine = brief ? '\n> 📝 *' + brief + '*' : '';
+    msg += '🎬 **New Creative Ready!**\n'
+      + '> **' + t.id + '** | ' + t.game + ' | **' + t.name + '**\n'
+      + '> ✅ Ready | Assigned: ' + (t.assigned||[]).join(', ') + dueDateStr + '\n'
+      + briefLine + '\n';
+  } else {
+    msg += '🎬 **' + taskList.length + ' Creatives Ready!**\n\n';
+    taskList.forEach(function(t, i) {
+      var dueDateStr = t.dueDate ? ' | 📅 ' + formatShortDate(t.dueDate) : '';
+      var brief = getTaskBrief(t);
+      var briefLine = brief ? '\n>    📝 *' + brief + '*' : '';
+      msg += '> **' + (i+1) + '. ' + t.id + '** | ' + t.game + ' | **' + t.name + '**\n'
+        + '>    ✅ Assigned: ' + (t.assigned||[]).join(', ') + dueDateStr + '\n'
+        + briefLine + '\n';
+    });
+  }
+  msg += '\n🔗 [Open Dashboard](https://lucifer1070.github.io/flowmotion-creative-tracker/)\n\n'
     + 'CC: <@828007965105455156> <@1092854025923346493>';
 
   fetch(DISCORD_WEBHOOK, {
@@ -2327,7 +2359,7 @@ function sendDiscordReadyNotify(t) {
       avatar_url: 'https://cdn-icons-png.flaticon.com/512/3281/3281289.png'
     })
   }).then(function(r) {
-    if (r.ok) showToast('Discord notification sent!');
+    if (r.ok) showToast('Discord notification sent for ' + taskList.length + ' task(s)!');
     else showToast('Discord notify failed', true);
   }).catch(function() {
     showToast('Could not reach Discord', true);

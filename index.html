@@ -321,6 +321,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
           <th data-sort="dueDate">Due Date</th>
           <th data-sort="type">Type</th>
           <th data-sort="status">Status</th>
+          <th>Networks</th>
           <th>Priority</th>
           <th data-sort="assigned">Assigned</th>
           <th data-sort="d7roas">D7 ROAS</th>
@@ -1045,6 +1046,19 @@ function renderTable() {
     html += '<td style="font-size:12px;'+(isOverdue?'color:var(--red);font-weight:600':'color:var(--muted)')+'">'+dueDateStr+overdueTag+'</td>';
     html += '<td>'+t.type+'</td>';
     html += '<td class="status-toggle" onclick="event.stopPropagation();toggleStatusDropdown(this,\''+t.id+'\')"><span class="badge-status '+statusClass+'">'+t.status+' &#9662;</span><div class="status-dropdown" id="sd-'+t.id+'"></div></td>';
+    var NET_COLORS = {'Facebook':'#1877f2','Google Ads':'#34a853','TikTok':'#010101','Unity':'#64748b','AppLovin':'#f43f5e','IronSource':'#6366f1','Mintegral':'#8b5cf6','Apple':'#a3a3a3'};
+    var NET_INITIALS = {'Facebook':'F','Google Ads':'G','TikTok':'T','Unity':'U','AppLovin':'A','IronSource':'I','Mintegral':'M','Apple':'Ap'};
+    var netDotsHtml = '';
+    if (t.networks && t.networks.length > 0) {
+      t.networks.forEach(function(n) {
+        var nc = NET_COLORS[n]||'#64748b';
+        var ni = NET_INITIALS[n]||n.charAt(0);
+        netDotsHtml += '<span title="'+n+'" style="width:20px;height:20px;border-radius:50%;background:'+nc+';display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff">'+ni+'</span>';
+      });
+    } else {
+      netDotsHtml = '<span style="color:var(--muted);font-size:11px">—</span>';
+    }
+    html += '<td><div style="display:flex;gap:3px;align-items:center">'+netDotsHtml+'</div></td>';
     html += '<td><div class="priority-dots">'+prioHtml+'</div></td>';
     html += '<td class="assign-cell" onclick="event.stopPropagation();toggleAssignPopup(this,\''+t.id+'\')"><div class="assigned-tags">'+assignedHtml+' <span style="color:var(--muted);font-size:10px;cursor:pointer" title="Edit assigned">&#9998;</span></div><div class="assign-popup" id="ap-'+t.id+'"></div></td>';
     html += '<td class="metric '+roasClass+'">'+roasStr+'</td>';
@@ -1994,6 +2008,7 @@ function toggleNetwork(net) {
   var idx = t.networks.indexOf(net);
   if (idx === -1) t.networks.push(net); else t.networks.splice(idx, 1);
   save();
+  renderTable();
   openSidePanel(currentPanelId);
 }
 

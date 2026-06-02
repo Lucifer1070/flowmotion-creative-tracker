@@ -67,6 +67,7 @@ th:hover{color:var(--accent)}
 th.sorted::after{content:' \2191';color:var(--accent)}
 th.sorted.desc::after{content:' \2193'}
 td{padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px;white-space:nowrap}
+td.tc,th.tc{text-align:center}
 tbody tr{transition:background .15s}
 tbody tr:hover{background:rgba(59,130,246,.04)}
 .id-cell{color:var(--accent);font-weight:500;cursor:pointer}
@@ -319,16 +320,16 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
           <th data-sort="id">ID</th>
           <th data-sort="game">Game</th>
           <th data-sort="name">Creative Name</th>
-          <th data-sort="created">Created</th>
-          <th data-sort="dueDate">Due Date</th>
-          <th data-sort="type">Type</th>
-          <th data-sort="status">Status</th>
-          <th>Networks</th>
-          <th>Priority</th>
-          <th data-sort="assigned">Assigned</th>
-          <th data-sort="d7roas">D7 ROAS</th>
-          <th data-sort="spend">Spend</th>
-          <th data-sort="cpi">CPI</th>
+          <th class="tc" data-sort="created">Created</th>
+          <th class="tc" data-sort="dueDate">Due Date</th>
+          <th class="tc" data-sort="type">Type</th>
+          <th class="tc" data-sort="status">Status</th>
+          <th class="tc">Networks</th>
+          <th class="tc">Priority</th>
+          <th class="tc" data-sort="assigned">Assigned</th>
+          <th class="tc" data-sort="d7roas">D7 ROAS</th>
+          <th class="tc" data-sort="spend">Spend</th>
+          <th class="tc" data-sort="cpi">CPI</th>
         </tr></thead>
         <tbody id="taskTableBody"></tbody>
       </table>
@@ -1167,13 +1168,13 @@ function renderTable() {
     else if (autoTag === 'loser') tagHtml = ' <span style="background:rgba(239,68,68,.2);color:var(--red);font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700">L</span>';
     html += '<td><div class="creative-link" style="cursor:pointer;color:var(--text)" onclick="openSidePanel(\''+t.id+'\')">'+t.name+arrow+tagHtml+'</div></td>';
     var dateStr2 = t.created ? formatShortDate(t.created) : '—';
-    html += '<td style="color:var(--muted);font-size:12px">'+dateStr2+'</td>';
+    html += '<td class="tc" style="color:var(--muted);font-size:12px">'+dateStr2+'</td>';
     var dueDateStr = t.dueDate ? formatShortDate(t.dueDate) : '—';
     var isOverdue = t.dueDate && !t.archived && t.status!=='Live' && t.status!=='Stopped' && t.status!=='Archive' && new Date(t.dueDate) < new Date(new Date().toISOString().slice(0,10));
     var overdueTag = isOverdue ? ' <span style="background:rgba(239,68,68,.2);color:var(--red);font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700">OVERDUE</span>' : '';
-    html += '<td style="font-size:12px;'+(isOverdue?'color:var(--red);font-weight:600':'color:var(--muted)')+'">'+dueDateStr+overdueTag+'</td>';
-    html += '<td>'+t.type+'</td>';
-    html += '<td class="status-toggle" onclick="event.stopPropagation();toggleStatusDropdown(this,\''+t.id+'\')"><span class="badge-status '+statusClass+'">'+t.status+' &#9662;</span><div class="status-dropdown" id="sd-'+t.id+'"></div></td>';
+    html += '<td class="tc" style="font-size:12px;'+(isOverdue?'color:var(--red);font-weight:600':'color:var(--muted)')+'">'+dueDateStr+overdueTag+'</td>';
+    html += '<td class="tc">'+t.type+'</td>';
+    html += '<td class="tc status-toggle" onclick="event.stopPropagation();toggleStatusDropdown(this,\''+t.id+'\')"><span class="badge-status '+statusClass+'">'+t.status+' &#9662;</span><div class="status-dropdown" id="sd-'+t.id+'"></div></td>';
     var NET_COLORS = {'Facebook':'#1877f2','Google Ads':'#34a853','TikTok':'#010101','Unity':'#64748b','AppLovin':'#f43f5e','IronSource':'#6366f1','Mintegral':'#8b5cf6','Apple':'#a3a3a3'};
     var NET_INITIALS = {'Facebook':'F','Google Ads':'G','TikTok':'T','Unity':'U','AppLovin':'A','IronSource':'I','Mintegral':'M','Apple':'Ap'};
     var netDotsHtml = '';
@@ -1186,12 +1187,12 @@ function renderTable() {
     } else {
       netDotsHtml = '<span style="color:var(--muted);font-size:11px">—</span>';
     }
-    html += '<td><div style="display:flex;gap:3px;align-items:center">'+netDotsHtml+'</div></td>';
-    html += '<td><div class="priority-dots">'+prioHtml+'</div></td>';
-    html += '<td class="assign-cell" onclick="event.stopPropagation();toggleAssignPopup(this,\''+t.id+'\')"><div class="assigned-tags">'+assignedHtml+' <span style="color:var(--muted);font-size:10px;cursor:pointer" title="Edit assigned">&#9998;</span></div><div class="assign-popup" id="ap-'+t.id+'"></div></td>';
-    html += '<td class="metric '+roasClass+'">'+roasStr+'</td>';
-    html += '<td class="metric">'+spendStr+'</td>';
-    html += '<td class="metric">'+cpiStr+'</td>';
+    html += '<td class="tc"><div style="display:flex;gap:3px;align-items:center;justify-content:center">'+netDotsHtml+'</div></td>';
+    html += '<td class="tc"><div class="priority-dots" style="justify-content:center">'+prioHtml+'</div></td>';
+    html += '<td class="tc assign-cell" onclick="event.stopPropagation();toggleAssignPopup(this,\''+t.id+'\')"><div class="assigned-tags" style="justify-content:center">'+assignedHtml+' <span style="color:var(--muted);font-size:10px;cursor:pointer" title="Edit assigned">&#9998;</span></div><div class="assign-popup" id="ap-'+t.id+'"></div></td>';
+    html += '<td class="tc metric '+roasClass+'">'+roasStr+'</td>';
+    html += '<td class="tc metric">'+spendStr+'</td>';
+    html += '<td class="tc metric">'+cpiStr+'</td>';
     html += '</tr>';
   });
   tbody.innerHTML = html;

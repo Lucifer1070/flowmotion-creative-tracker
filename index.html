@@ -25,7 +25,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 /* Status Summary */
 .status-summary{margin-top:auto;padding:16px;border-top:1px solid var(--border)}
 .status-summary h4{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:12px}
-.status-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;margin-bottom:4px;font-size:13px}
+.status-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;margin-bottom:4px;font-size:13px;cursor:pointer;transition:background .15s}
+.status-item:hover{background:rgba(59,130,246,.08)}
+.status-item.active-status{background:rgba(59,130,246,.12)}
 .status-item .dot{width:8px;height:8px;border-radius:50%}
 .status-item .count{margin-left:auto;font-weight:600;font-size:14px}
 .st-ready{background:rgba(16,185,129,.1);color:var(--green)}
@@ -248,9 +250,9 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
   </div>
   <div class="status-summary">
     <h4>Status</h4>
-    <div class="status-item st-ready"><span class="dot" style="background:var(--green)"></span><span>Ready</span><span class="count" id="ssReady">3</span></div>
-    <div class="status-item st-live"><span class="dot" style="background:var(--accent)"></span><span>Live</span><span class="count" id="ssLive">2</span></div>
-    <div class="status-item st-overdue"><span class="dot" style="background:var(--red)"></span><span>Overdue</span><span class="count" id="ssOverdue">2</span></div>
+    <div class="status-item st-ready" onclick="filterByStatusSidebar('Ready')"><span class="dot" style="background:var(--green)"></span><span>Ready</span><span class="count" id="ssReady">3</span></div>
+    <div class="status-item st-live" onclick="filterByStatusSidebar('Live')"><span class="dot" style="background:var(--accent)"></span><span>Live</span><span class="count" id="ssLive">2</span></div>
+    <div class="status-item st-overdue" onclick="filterByStatusSidebar('Overdue')"><span class="dot" style="background:var(--red)"></span><span>Overdue</span><span class="count" id="ssOverdue">2</span></div>
   </div>
 </div>
 
@@ -315,7 +317,8 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
           <th data-sort="id">ID</th>
           <th data-sort="game">Game</th>
           <th data-sort="name">Creative Name</th>
-          <th data-sort="created">Date</th>
+          <th data-sort="created">Created</th>
+          <th data-sort="dueDate">Due Date</th>
           <th data-sort="type">Type</th>
           <th data-sort="status">Status</th>
           <th>Priority</th>
@@ -425,6 +428,10 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
     <div class="form-row">
       <div class="form-group"><label>Status</label><select id="fStatus"><option>Brief</option><option>Design</option><option>Ready</option><option>Live</option><option>On Hold</option><option>Stopped</option></select></div>
       <div class="form-group"><label>Priority</label><select id="fPriority"><option value="3">High (3)</option><option value="2">Medium (2)</option><option value="1">Low (1)</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Due Date</label><input id="fDueDate" type="date" onclick="this.showPicker?this.showPicker():null" style="cursor:pointer"></div>
+      <div class="form-group"></div>
     </div>
     <div class="form-group"><label>Assigned To</label><div class="team-mgmt"><div class="team-list" id="fTeamList"></div><div class="team-add-row"><input id="fTeamInput" placeholder="Add name..." onkeydown="if(event.key==='Enter'){event.preventDefault();addTeamMember()}"><button type="button" onclick="addTeamMember()">+</button></div></div></div>
     <div class="form-group"><label>Description</label>
@@ -556,6 +563,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
       <div class="sp-detail-row" id="spParentAdRow" style="display:none"><span class="label">Parent Ad</span><span class="value" id="spParentAd"></span></div>
       <div class="sp-detail-row"><span class="label">Assigned</span><span class="value"><div id="spAssigned" style="display:flex;gap:4px;flex-wrap:wrap;align-items:center"></div></span></div>
       <div class="sp-detail-row"><span class="label">Live Date</span><span class="value" id="spLiveDate"></span></div>
+      <div class="sp-detail-row"><span class="label">Due Date</span><span class="value" id="spDueDate"><input id="spDueDateInput" type="date" onclick="this.showPicker?this.showPicker():null" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:4px;font-size:12px;outline:none;cursor:pointer" onchange="updateDueDateFromPanel()"><span id="spDueDateOverdue" style="display:none;background:rgba(239,68,68,.2);color:var(--red);font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700;margin-left:6px">OVERDUE</span></span></div>
       <div class="sp-detail-row"><span class="label">Priority</span><span class="value" id="spPriority"></span></div>
     </div>
     <div class="sp-section" id="spCreativeLinkSection"><h4>Creative Link <span style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400">&#128274; Admin only</span></h4>
@@ -850,6 +858,8 @@ function attachEvents() {
     el.addEventListener('click', function() {
       document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});
       el.classList.add('active');
+      sidebarStatusFilter = '';
+      document.querySelectorAll('.status-item').forEach(function(s){s.classList.remove('active-status')});
       var v = el.getAttribute('data-view');
       if (v === 'mytasks') { currentMyOnly = true; v = 'tasks'; }
       else { currentMyOnly = false; }
@@ -917,6 +927,27 @@ function updateSubtitle() {
   document.getElementById('viewSubtitle').textContent = active.length + ' creatives - Flowmotion Entertainment';
 }
 
+var sidebarStatusFilter = '';
+function filterByStatusSidebar(status) {
+  // Toggle: click same again to clear
+  if (sidebarStatusFilter === status) { sidebarStatusFilter = ''; }
+  else { sidebarStatusFilter = status; }
+  // Switch to All Tasks view
+  currentMyOnly = false;
+  switchView('tasks');
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active')});
+  var allNav = document.querySelector('.nav-item[data-view="all"]');
+  if (allNav) allNav.classList.add('active');
+  // Clear other filters for clean view
+  document.getElementById('statusFilter').value = (status === 'Overdue') ? '' : status;
+  // Highlight active sidebar status
+  document.querySelectorAll('.status-item').forEach(function(el){el.classList.remove('active-status')});
+  if (sidebarStatusFilter) {
+    document.querySelector('.st-'+sidebarStatusFilter.toLowerCase()).classList.add('active-status');
+  }
+  renderTable();
+}
+
 // ============ TABLE ============
 function getFiltered() {
   var gf = document.getElementById('gameFilter').value;
@@ -942,6 +973,11 @@ function getFiltered() {
     if (calFilterEnd && t.created && t.created > calFilterEnd) return false;
     if (calFilterStart && !t.created) return false;
     if (searchQuery && t.id.toLowerCase().indexOf(searchQuery) === -1 && t.name.toLowerCase().indexOf(searchQuery) === -1) return false;
+    // Sidebar overdue filter
+    if (sidebarStatusFilter === 'Overdue') {
+      var todayS = new Date().toISOString().slice(0,10);
+      if (!(t.dueDate && t.status!=='Live' && t.status!=='Stopped' && new Date(t.dueDate)<new Date(todayS))) return false;
+    }
     return true;
   });
   // Sort
@@ -1003,6 +1039,10 @@ function renderTable() {
     html += '<td><div class="creative-link" style="cursor:pointer;color:var(--text)" onclick="openSidePanel(\''+t.id+'\')">'+t.name+arrow+tagHtml+'</div></td>';
     var dateStr2 = t.created ? formatShortDate(t.created) : '—';
     html += '<td style="color:var(--muted);font-size:12px">'+dateStr2+'</td>';
+    var dueDateStr = t.dueDate ? formatShortDate(t.dueDate) : '—';
+    var isOverdue = t.dueDate && !t.archived && t.status!=='Live' && t.status!=='Stopped' && t.status!=='Archive' && new Date(t.dueDate) < new Date(new Date().toISOString().slice(0,10));
+    var overdueTag = isOverdue ? ' <span style="background:rgba(239,68,68,.2);color:var(--red);font-size:9px;padding:1px 5px;border-radius:3px;font-weight:700">OVERDUE</span>' : '';
+    html += '<td style="font-size:12px;'+(isOverdue?'color:var(--red);font-weight:600':'color:var(--muted)')+'">'+dueDateStr+overdueTag+'</td>';
     html += '<td>'+t.type+'</td>';
     html += '<td class="status-toggle" onclick="event.stopPropagation();toggleStatusDropdown(this,\''+t.id+'\')"><span class="badge-status '+statusClass+'">'+t.status+' &#9662;</span><div class="status-dropdown" id="sd-'+t.id+'"></div></td>';
     html += '<td><div class="priority-dots">'+prioHtml+'</div></td>';
@@ -1026,9 +1066,9 @@ function renderTable() {
   // Status summary
   document.getElementById('ssReady').textContent = active.filter(function(t){return t.status==='Ready'}).length;
   document.getElementById('ssLive').textContent = active.filter(function(t){return t.status==='Live'}).length;
-  // Overdue: Brief or Design older than 5 days
-  var fiveDaysAgo = new Date(now.getTime()-5*24*60*60*1000);
-  var overdue = active.filter(function(t){return (t.status==='Brief'||t.status==='Design')&&new Date(t.created)<fiveDaysAgo}).length;
+  // Overdue: tasks past their due date (not Live/Stopped/Archived)
+  var todayStr = new Date().toISOString().slice(0,10);
+  var overdue = active.filter(function(t){return t.dueDate && t.status!=='Live' && t.status!=='Stopped' && new Date(t.dueDate)<new Date(todayStr)}).length;
   document.getElementById('ssOverdue').textContent = overdue;
   // Sort headers
   document.querySelectorAll('th[data-sort]').forEach(function(th) {
@@ -1094,6 +1134,7 @@ function openModal(id) {
     document.getElementById('fName').value = t.name;
     document.getElementById('fStatus').value = t.status;
     document.getElementById('fPriority').value = t.priority;
+    document.getElementById('fDueDate').value = t.dueDate || '';
     modalAssigned = t.assigned.slice();
     document.getElementById('fNotes').innerHTML = t.desc || t.notes || '';
   } else {
@@ -1105,6 +1146,7 @@ function openModal(id) {
     toggleTaskVarFields();
     populateTaskParentAd();
     document.getElementById('fName').value = '';
+    document.getElementById('fDueDate').value = '';
     document.getElementById('fNotes').innerHTML = '';
     modalAssigned = ['Neeraj'];
   }
@@ -1127,6 +1169,7 @@ function saveTask() {
     status: document.getElementById('fStatus').value,
     priority: parseInt(document.getElementById('fPriority').value),
     assigned: assigned,
+    dueDate: document.getElementById('fDueDate').value || '',
     notes: document.getElementById('fNotes').innerHTML,
     desc: document.getElementById('fNotes').innerHTML
   };
@@ -1841,6 +1884,9 @@ function openSidePanel(id) {
   spAssHtml += '<span style="cursor:pointer;color:var(--accent);font-size:18px;line-height:1" onclick="addSpAssign()" title="Add person">+</span>';
   document.getElementById('spAssigned').innerHTML = spAssHtml;
   document.getElementById('spLiveDate').textContent = t.status === 'Live' ? (t.created || 'Active') : '\u2014 not live yet';
+  document.getElementById('spDueDateInput').value = t.dueDate || '';
+  var isDue = t.dueDate && !t.archived && t.status!=='Live' && t.status!=='Stopped' && new Date(t.dueDate) < new Date(new Date().toISOString().slice(0,10));
+  document.getElementById('spDueDateOverdue').style.display = isDue ? 'inline' : 'none';
   var prioHtml = '';
   for (var i = 0; i < t.priority; i++) prioHtml += '<span class="pdot '+(t.priority>=3?'pdot-high':(t.priority===2?'pdot-med':'pdot-low'))+'"></span>';
   document.getElementById('spPriority').innerHTML = '<div class="priority-dots">'+prioHtml+'</div>';
@@ -1922,6 +1968,9 @@ function applyRoleRestrictions() {
   // Creative Link edit - admin only
   var clEditBtn = document.getElementById('spCreativeLinkEditBtn');
   if (clEditBtn) clEditBtn.style.display = admin ? 'inline' : 'none';
+  // Due date - admin & editor
+  var dueDateInput = document.getElementById('spDueDateInput');
+  if (dueDateInput) dueDateInput.disabled = !editable;
   // Performance fields - admin only
   document.querySelectorAll('#perfSection input, #perfSection select').forEach(function(el) { el.disabled = !admin; });
   // Add Task button - admin & editor
@@ -1990,6 +2039,16 @@ function switchPerfDay(day) {
   document.getElementById('spRoasBadge').style.color = rv > 0 ? 'var(--green)' : (rv < 0 ? 'var(--red)' : 'var(--muted)');
   save();
   renderDayToggles(t);
+}
+
+function updateDueDateFromPanel() {
+  if (!canEdit()) { showToast('Viewers cannot edit due date',true); return; }
+  var t = tasks.find(function(x){return x.id===currentPanelId});
+  if (!t) return;
+  t.dueDate = document.getElementById('spDueDateInput').value || '';
+  var isDue = t.dueDate && !t.archived && t.status!=='Live' && t.status!=='Stopped' && new Date(t.dueDate) < new Date(new Date().toISOString().slice(0,10));
+  document.getElementById('spDueDateOverdue').style.display = isDue ? 'inline' : 'none';
+  save(); renderTable();
 }
 
 function updatePerfFromPanel() {
@@ -2227,10 +2286,52 @@ function changeStatus(id, newStatus) {
   if (!canEdit()) { showToast('Viewers cannot change status',true); return; }
   var t = tasks.find(function(x){return x.id===id});
   if (!t) return;
+  var oldStatus = t.status;
   if (newStatus === 'Archive') { t.archived = true; }
   else { t.archived = false; t.status = newStatus; }
+  // Discord notify: only Neeraj, only when changing TO Ready, only once per task
+  if (newStatus === 'Ready' && oldStatus !== 'Ready' && currentUser === 'Neeraj') {
+    sendDiscordReadyNotify(t);
+  }
   save(); renderTable();
   if (_openDropdown) { _openDropdown.classList.remove('open'); _openDropdown = null; }
+}
+
+// ============ DISCORD WEBHOOK ============
+var DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1511332125377429544/uRB5VG85MP8IKFU3pxlFS1keSDBXBvCOvO-h1Sm2CSJTlEKo1l3udX1TptarnAFgXT2Y';
+function sendDiscordReadyNotify(t) {
+  var dueDateStr = t.dueDate ? '📅 Due: ' + formatShortDate(t.dueDate) : '';
+  // Strip HTML from description for short brief
+  var tmp = document.createElement('div');
+  tmp.innerHTML = t.desc || t.notes || '';
+  var plainDesc = tmp.textContent || tmp.innerText || '';
+  var brief = plainDesc.trim().replace(/\s+/g,' ');
+  if (brief.length > 150) brief = brief.substring(0,147) + '...';
+  var briefLine = brief ? '\n> 📝 *' + brief + '*' : '';
+
+  var msg = '<@938110096397967381>\n\n'
+    + '🎬 **New Creative Ready!**\n'
+    + '> **' + t.id + '** | ' + t.game + ' | **' + t.name + '**\n'
+    + '> ✅ Ready | Assigned: ' + (t.assigned||[]).join(', ')
+    + (dueDateStr ? ' | ' + dueDateStr : '') + '\n'
+    + briefLine + '\n\n'
+    + '🔗 [Open Dashboard](https://lucifer1070.github.io/flowmotion-creative-tracker/)\n\n'
+    + 'CC: <@828007965105455156> <@1092854025923346493>';
+
+  fetch(DISCORD_WEBHOOK, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      content: msg,
+      username: 'FME Creative Tracker',
+      avatar_url: 'https://cdn-icons-png.flaticon.com/512/3281/3281289.png'
+    })
+  }).then(function(r) {
+    if (r.ok) showToast('Discord notification sent!');
+    else showToast('Discord notify failed', true);
+  }).catch(function() {
+    showToast('Could not reach Discord', true);
+  });
 }
 // Close dropdowns on outside click
 document.addEventListener('click', function() {

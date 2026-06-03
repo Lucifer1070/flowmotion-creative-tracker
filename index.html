@@ -365,7 +365,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
       <div><h3 style="font-size:16px;color:#f1f5f9">Idea Vault</h3><p style="font-size:12px;color:var(--muted)">Capture creative ideas before they slip away</p></div>
       <div style="display:flex;gap:8px;align-items:center">
         <select id="ideaTypeFilter" class="filter-btn" style="font-size:12px" onchange="renderIdeas()"><option value="">All Types</option><option value="Variation">Variations</option><option value="New Concept">New Concepts</option><option value="Mashup">Mashups</option><option value="Localization">Localization</option></select>
-        <select id="ideaGameFilter" class="filter-btn" style="font-size:12px" onchange="renderIdeas()"><option value="">All Games</option><option>Cooking Crush</option><option>Cooking Chaos</option><option>Cooking Crunch</option><option>Kitchen Craze</option><option>Gym Mania</option><option>My Hotel</option></select>
+        <select id="ideaGameFilter" class="filter-btn" style="font-size:12px" onchange="renderIdeas()"><option value="">All Games</option><option>Cooking Crush</option><option>Cooking Chaos</option><option>Cooking Crunch</option><option>Kitchen Craze</option><option>Gym Mania</option><option>My Hotel</option><option>Recipe Rush</option></select>
         <button class="btn-add" onclick="openIdeaModal()">+ New Idea</button>
       </div>
     </div>
@@ -393,7 +393,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
       <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
         <h4 style="font-size:14px;color:#f1f5f9">Asset Library</h4>
         <div style="display:flex;gap:8px;align-items:center">
-          <select id="afGameFilter" class="filter-btn" style="font-size:12px" onchange="renderAdFactory()"><option value="">All Games</option><option value="CC">CC - Cooking Crush</option><option value="CK">CK - Cooking Chaos</option><option value="CN">CN - Cooking Crunch</option><option value="KK">KK - Kitchen Craze</option><option value="GM">GM - Gym Mania</option><option value="MH">MH - My Hotel</option></select>
+          <select id="afGameFilter" class="filter-btn" style="font-size:12px" onchange="renderAdFactory()"><option value="">All Games</option><option value="CC">CC - Cooking Crush</option><option value="CK">CK - Cooking Chaos</option><option value="CN">CN - Cooking Crunch</option><option value="KK">KK - Kitchen Craze</option><option value="GM">GM - Gym Mania</option><option value="MH">MH - My Hotel</option><option value="RR">RR - Recipe Rush</option></select>
           <select id="afTypeFilter" class="filter-btn" style="font-size:12px" onchange="renderAdFactory()"><option value="">All Types</option><option value="Hook">Hook</option><option value="Body">Body</option><option value="CTA">CTA</option><option value="Final">Final Merged</option></select>
           <div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden">
             <button id="afViewList" class="filter-btn" style="border:none;border-radius:0;padding:6px 10px;font-size:14px" onclick="setAFView('list')" title="List View">&#9776;</button>
@@ -445,7 +445,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
     <h3 id="modalTitle">Add New Creative Task</h3>
     <input type="hidden" id="editId">
     <div class="form-row">
-      <div class="form-group"><label>Game</label><select id="fGame"><option>Cooking Crush</option><option>Cooking Chaos</option><option>Cooking Crunch</option><option>Kitchen Craze</option><option>Gym Mania</option><option>My Hotel</option></select></div>
+      <div class="form-group"><label>Game</label><select id="fGame"><option>Cooking Crush</option><option>Cooking Chaos</option><option>Cooking Crunch</option><option>Kitchen Craze</option><option>Gym Mania</option><option>My Hotel</option><option>Recipe Rush</option></select></div>
       <div class="form-group"><label>Type</label><select id="fType"><option>Playable Ad</option><option>Video Ad</option><option>Static Ad</option></select></div>
     </div>
     <div class="form-row">
@@ -505,7 +505,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
       <div class="form-group" id="parentAdGroup" style="display:none"><label>Parent Ad (Source)</label><select id="iParentAd"><option value="">-- Select Parent Ad --</option></select></div>
     </div>
     <div class="form-row">
-      <div class="form-group"><label>Game</label><select id="iGame"><option value="">-- Select Game --</option><option>Cooking Crush</option><option>Cooking Chaos</option><option>Cooking Crunch</option><option>Kitchen Craze</option><option>Gym Mania</option><option>My Hotel</option><option>All Games</option></select></div>
+      <div class="form-group"><label>Game</label><select id="iGame"><option value="">-- Select Game --</option><option>Cooking Crush</option><option>Cooking Chaos</option><option>Cooking Crunch</option><option>Kitchen Craze</option><option>Gym Mania</option><option>My Hotel</option><option>Recipe Rush</option><option>All Games</option></select></div>
       <div class="form-group"><label>Ad Category</label><select id="iCategory"><option value="">-- Select Type --</option><option>Video Ad</option><option>Static Ad</option><option>Playable Ad</option></select></div>
     </div>
     <div class="form-row">
@@ -557,7 +557,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
     <div class="form-group"><label>Quick Add (paste filename)</label><input id="aFileName" placeholder="CC_FAIL_H07_M03_C02_MINTEGRAL_9x16_20260310.mp4" oninput="parseAssetName()"></div>
     <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
       <div class="form-row">
-        <div class="form-group"><label>Game</label><select id="aGame"><option value="CC">CC - Cooking Crush</option><option value="CK">CK - Cooking Chaos</option><option value="CN">CN - Cooking Crunch</option><option value="KK">KK - Kitchen Craze</option><option value="GM">GM - Gym Mania</option><option value="MH">MH - My Hotel</option></select></div>
+        <div class="form-group"><label>Game</label><select id="aGame"><option value="CC">CC - Cooking Crush</option><option value="CK">CK - Cooking Chaos</option><option value="CN">CN - Cooking Crunch</option><option value="KK">KK - Kitchen Craze</option><option value="GM">GM - Gym Mania</option><option value="MH">MH - My Hotel</option><option value="RR">RR - Recipe Rush</option></select></div>
         <div class="form-group"><label>Folder / Type</label><select id="aFolder"><option value="Hook">Hook</option><option value="Body">Body</option><option value="CTA">CTA</option><option value="Final">Final Merged</option></select></div>
       </div>
       <div class="form-row">
@@ -587,7 +587,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
   </div>
   <div class="sp-body">
     <div class="sp-section"><h4>Details</h4>
-      <div class="sp-detail-row"><span class="label">Game</span><span class="value"><select id="spDetGame" onchange="saveSpField('game',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:12px"><option>Cooking Crush</option><option>Cooking Chaos</option><option>Cooking Crunch</option><option>Kitchen Craze</option><option>Gym Mania</option><option>My Hotel</option></select></span></div>
+      <div class="sp-detail-row"><span class="label">Game</span><span class="value"><select id="spDetGame" onchange="saveSpField('game',this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:12px"><option>Cooking Crush</option><option>Cooking Chaos</option><option>Cooking Crunch</option><option>Kitchen Craze</option><option>Gym Mania</option><option>My Hotel</option><option>Recipe Rush</option></select></span></div>
       <div class="sp-detail-row"><span class="label">Campaign</span><span class="value"><select id="spCampaign" onchange="saveCampaign()" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:12px"><option value="">Select Campaign</option><option>Installer</option><option>Purchaser</option><option>In-App Purchase</option><option>Retargeting</option><option>Re-Engagement</option><option>Brand Awareness</option><option>App Install</option><option>CPI</option><option>CPE (Cost Per Engagement)</option><option>ROAS Optimized</option><option>Value Optimized</option><option>Lookalike</option><option>Broad</option></select></span></div>
       <div class="sp-detail-row"><span class="label">Ad Type</span><span class="value" id="spType"></span></div>
       <div class="sp-detail-row"><span class="label">Creative Type</span><span class="value" id="spCreativeType"></span></div>
@@ -1182,7 +1182,7 @@ function renderTable() {
     var spendStr = t.spend != null ? (t.spend >= 1000 ? (t.spend/1000).toFixed(1)+'k' : t.spend.toString()) : '—';
     var cpiStr = t.cpi != null ? '$'+t.cpi.toFixed(2) : '—';
     var roasStr = t.d7roas != null ? t.d7roas.toFixed(1)+'x' : '—';
-    var gameColors = {'Cooking Crush':'#f59e0b','Cooking Chaos':'#ef4444','Cooking Crunch':'#a855f7','Kitchen Craze':'#10b981','Gym Mania':'#ec4899','My Hotel':'#3b82f6'};
+    var gameColors = {'Cooking Crush':'#f59e0b','Cooking Chaos':'#ef4444','Cooking Crunch':'#a855f7','Kitchen Craze':'#10b981','Gym Mania':'#ec4899','My Hotel':'#3b82f6','Recipe Rush':'#06b6d4'};
     var gc = gameColors[t.game] || '#64748b';
     var rowClass = t.status === 'Ready' ? ' class="row-ready"' : '';
     html += '<tr'+rowClass+' ondblclick="editTask(\''+t.id+'\')">';
@@ -1675,7 +1675,7 @@ var driveSyncData = JSON.parse(localStorage.getItem(DRIVE_SYNC_KEY)||'null');
     localStorage.setItem(GDRIVE_KEY, JSON.stringify({folder:DEFAULT_DRIVE_FOLDER,connected:true,syncedAt:null}));
   }
 })();
-var GAME_CODES = {'CC':'Cooking Crush','CK':'Cooking Chaos','CN':'Cooking Crunch','KK':'Kitchen Craze','GM':'Gym Mania','MH':'My Hotel'};
+var GAME_CODES = {'CC':'Cooking Crush','CK':'Cooking Chaos','CN':'Cooking Crunch','KK':'Kitchen Craze','GM':'Gym Mania','MH':'My Hotel','RR':'Recipe Rush'};
 var GAME_COLORS = {'CC':'#f59e0b','CK':'#ef4444','CN':'#a855f7','KK':'#10b981','GM':'#ec4899','MH':'#3b82f6'};
 var FOLDER_COLORS = {'Hook':'#ef4444','Body':'#f59e0b','CTA':'#10b981','Final':'#3b82f6'};
 var FOLDER_LABELS = {'Hook':'Hook','Body':'Body','CTA':'CTA','Final':'Final Merged'};

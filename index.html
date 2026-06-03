@@ -640,7 +640,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
       </div>
       <div class="sp-summary-chips" id="spSummary" style="margin-top:8px"></div>
     </div>
-    <div class="sp-section sp-desc"><h4>Description <span id="spDescLock" style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400">&#128274; Admin only</span></h4>
+    <div class="sp-section sp-desc"><h4>Description <span id="spDescTTS" onclick="speakDescription()" title="Read aloud" style="cursor:pointer;font-size:14px;margin-left:6px;opacity:.7;transition:opacity .15s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.7'">&#128264;</span> <span id="spDescLock" style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400">&#128274; Admin only</span></h4>
       <div id="spDescToolbar" onmousedown="event.preventDefault()" style="display:flex;gap:4px;margin-bottom:6px;padding:4px 6px;background:var(--bg);border:1px solid var(--border);border-bottom:none;border-radius:6px 6px 0 0;flex-wrap:wrap">
         <button class="desc-tb-btn" onclick="execDescCmd('bold')" title="Bold" style="padding:4px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;font-size:12px;font-weight:700">B</button>
         <button class="desc-tb-btn" onclick="execDescCmd('formatBlock','H3')" title="Headline" style="padding:4px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;font-size:12px;font-weight:600">H</button>
@@ -2324,6 +2324,34 @@ function removeDescription() {
   document.getElementById('spDesc').innerHTML = '';
   var t = tasks.find(function(x){return x.id===currentPanelId});
   if (t) { t.desc = ''; t.notes = ''; save(); }
+}
+
+// Text-to-Speech for description
+var ttsActive = false;
+function speakDescription() {
+  var icon = document.getElementById('spDescTTS');
+  // If already speaking, stop
+  if (ttsActive) {
+    window.speechSynthesis.cancel();
+    ttsActive = false;
+    icon.innerHTML = '&#128264;';
+    icon.title = 'Read aloud';
+    return;
+  }
+  var descEl = document.getElementById('spDesc');
+  var text = descEl ? descEl.innerText.trim() : '';
+  if (!text) { showToast('No description to read', true); return; }
+  // Add task context
+  var t = tasks.find(function(x){return x.id===currentPanelId});
+  var intro = t ? t.name + '. ' : '';
+  var utter = new SpeechSynthesisUtterance(intro + text);
+  utter.lang = 'en-US';
+  utter.rate = 0.95;
+  utter.onstart = function() { ttsActive = true; icon.innerHTML = '&#9724;'; icon.title = 'Stop reading'; icon.style.color = 'var(--red)'; };
+  utter.onend = function() { ttsActive = false; icon.innerHTML = '&#128264;'; icon.title = 'Read aloud'; icon.style.color = ''; };
+  utter.onerror = function() { ttsActive = false; icon.innerHTML = '&#128264;'; icon.title = 'Read aloud'; icon.style.color = ''; };
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utter);
 }
 
 function renderComments(t) {

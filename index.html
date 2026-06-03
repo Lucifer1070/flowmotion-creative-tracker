@@ -640,7 +640,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
       </div>
       <div class="sp-summary-chips" id="spSummary" style="margin-top:8px"></div>
     </div>
-    <div class="sp-section sp-desc"><h4>Description <span id="spDescTTS" onclick="speakDescription()" title="Read aloud" style="cursor:pointer;font-size:14px;margin-left:6px;opacity:.7;transition:opacity .15s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.7'">&#128264;</span> <span id="spDescLock" style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400">&#128274; Admin only</span></h4>
+    <div class="sp-section sp-desc"><h4>Description <button id="spDescTTS" onclick="speakDescription()" title="Read aloud" style="cursor:pointer;font-size:11px;margin-left:8px;padding:3px 10px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);border-radius:6px;color:var(--accent);font-weight:600;display:inline-flex;align-items:center;gap:4px;vertical-align:middle;transition:all .15s" onmouseover="this.style.background='rgba(59,130,246,.25)'" onmouseout="this.style.background='rgba(59,130,246,.15)'">&#128264; Listen</button> <span id="spDescLock" style="font-size:10px;color:var(--muted);text-transform:none;letter-spacing:0;font-weight:400">&#128274; Admin only</span></h4>
       <div id="spDescToolbar" onmousedown="event.preventDefault()" style="display:flex;gap:4px;margin-bottom:6px;padding:4px 6px;background:var(--bg);border:1px solid var(--border);border-bottom:none;border-radius:6px 6px 0 0;flex-wrap:wrap">
         <button class="desc-tb-btn" onclick="execDescCmd('bold')" title="Bold" style="padding:4px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;font-size:12px;font-weight:700">B</button>
         <button class="desc-tb-btn" onclick="execDescCmd('formatBlock','H3')" title="Headline" style="padding:4px 8px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text);cursor:pointer;font-size:12px;font-weight:600">H</button>
@@ -2326,32 +2326,47 @@ function removeDescription() {
   if (t) { t.desc = ''; t.notes = ''; save(); }
 }
 
-// Text-to-Speech for description
+// Text-to-Speech via ElevenLabs (through Apps Script proxy)
 var ttsActive = false;
+var ttsAudio = null;
 function speakDescription() {
   var icon = document.getElementById('spDescTTS');
-  // If already speaking, stop
-  if (ttsActive) {
-    window.speechSynthesis.cancel();
+  // If already playing, stop
+  if (ttsActive && ttsAudio) {
+    ttsAudio.pause();
+    ttsAudio.currentTime = 0;
     ttsActive = false;
-    icon.innerHTML = '&#128264;';
-    icon.title = 'Read aloud';
+    ttsResetBtn();
     return;
   }
   var descEl = document.getElementById('spDesc');
   var text = descEl ? descEl.innerText.trim() : '';
   if (!text) { showToast('No description to read', true); return; }
-  // Add task context
   var t = tasks.find(function(x){return x.id===currentPanelId});
   var intro = t ? t.name + '. ' : '';
-  var utter = new SpeechSynthesisUtterance(intro + text);
-  utter.lang = 'en-US';
-  utter.rate = 0.95;
-  utter.onstart = function() { ttsActive = true; icon.innerHTML = '&#9724;'; icon.title = 'Stop reading'; icon.style.color = 'var(--red)'; };
-  utter.onend = function() { ttsActive = false; icon.innerHTML = '&#128264;'; icon.title = 'Read aloud'; icon.style.color = ''; };
-  utter.onerror = function() { ttsActive = false; icon.innerHTML = '&#128264;'; icon.title = 'Read aloud'; icon.style.color = ''; };
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utter);
+  var fullText = intro + text;
+  // Show loading state
+  icon.innerHTML = '&#9203; Loading...';
+  icon.style.color = 'var(--orange)';
+  icon.style.borderColor = 'rgba(245,158,11,.3)';
+  icon.style.background = 'rgba(245,158,11,.15)';
+  // Call Apps Script which proxies to ElevenLabs
+  fetch(SYNC_URL + '?action=tts&text=' + encodeURIComponent(fullText))
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (!data.success || !data.audio) { showToast('TTS failed: '+(data.error||'Unknown error'), true); ttsResetBtn(); return; }
+      var audioSrc = 'data:audio/mpeg;base64,' + data.audio;
+      ttsAudio = new Audio(audioSrc);
+      ttsAudio.onplay = function(){ ttsActive = true; icon.innerHTML = '&#9724; Stop'; icon.style.color = 'var(--red)'; icon.style.borderColor = 'rgba(239,68,68,.3)'; icon.style.background = 'rgba(239,68,68,.15)'; };
+      ttsAudio.onended = function(){ ttsActive = false; ttsResetBtn(); };
+      ttsAudio.onerror = function(){ ttsActive = false; ttsResetBtn(); showToast('Audio playback failed', true); };
+      ttsAudio.play();
+    })
+    .catch(function(err){ showToast('TTS request failed', true); ttsResetBtn(); });
+}
+function ttsResetBtn() {
+  var icon = document.getElementById('spDescTTS');
+  if (icon) { icon.innerHTML = '&#128264; Listen'; icon.title = 'Read aloud'; icon.style.color = 'var(--accent)'; icon.style.borderColor = 'rgba(59,130,246,.3)'; icon.style.background = 'rgba(59,130,246,.15)'; }
 }
 
 function renderComments(t) {

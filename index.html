@@ -990,10 +990,10 @@ function showToast(msg, isError) {
 }
 
 function populateFilters() {
-  var games = [...new Set(tasks.map(function(t){return t.game}))].sort();
+  var allGames = ['Cooking Chaos','Cooking Crush','Cooking Crunch','Gym Mania','Kitchen Craze','My Hotel','Recipe Rush'];
   var gf = document.getElementById('gameFilter');
   gf.innerHTML = '<option value="">All Games</option>';
-  games.forEach(function(g) {
+  allGames.forEach(function(g) {
     var o = document.createElement('option'); o.value = g; o.textContent = g; gf.appendChild(o);
   });
   var statuses = ['Brief','Design','Ready','Live','On Hold','Stopped'];

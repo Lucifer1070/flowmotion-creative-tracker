@@ -757,12 +757,9 @@ function showPinModal() {
 }
 function closePinModal() {
   document.getElementById('pinOverlay').style.display = 'none';
-  if (pendingIdentityName) {
-    // Login as the user but without admin privileges
-    setCurrentUser(pendingIdentityName);
-    pendingIdentityName = '';
-    renderAll(); renderIdeas();
-  }
+  // Don't login — go back to identity picker so user can choose another name
+  pendingIdentityName = '';
+  showIdentityPicker();
 }
 async function verifyPin() {
   var pin = document.getElementById('pinInput').value;

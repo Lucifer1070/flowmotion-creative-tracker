@@ -246,7 +246,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
   <div class="nav-section">
     <div class="nav-label">Navigation</div>
     <div class="nav-item active" data-view="tasks"><span class="nav-icon">&#9776;</span>All Tasks<span class="badge" id="navTaskCount">10</span></div>
-    <div class="nav-item" data-view="mytasks"><span class="nav-icon">&#9733;</span>My Tasks<span class="badge" id="navMyCount">5</span></div>
+    <div class="nav-item" data-view="mytasks"><span class="nav-icon">&#9733;</span>Active Tasks<span class="badge" id="navMyCount">5</span></div>
     <div class="nav-item" data-view="dashboard"><span class="nav-icon">&#9635;</span>Dashboard</div>
     <div class="nav-item" data-view="ideavault"><span class="nav-icon">&#10023;</span>Idea Vault</div>
     <div class="nav-item" data-view="adfactory"><span class="nav-icon">&#128193;</span>Ad Factory</div>
@@ -1015,6 +1015,12 @@ function attachEvents() {
       el.classList.add('active');
       sidebarStatusFilter = '';
       document.querySelectorAll('.status-item').forEach(function(s){s.classList.remove('active-status')});
+      // Reset all filters when switching nav tabs
+      document.getElementById('statusFilter').value = '';
+      document.getElementById('gameFilter').value = '';
+      if (document.getElementById('creativeTypeFilter')) document.getElementById('creativeTypeFilter').value = '';
+      if (document.getElementById('networkFilter')) document.getElementById('networkFilter').value = '';
+      searchQuery = ''; document.getElementById('searchBox').value = '';
       var v = el.getAttribute('data-view');
       if (v === 'mytasks') { currentMyOnly = true; v = 'tasks'; }
       else { currentMyOnly = false; }
@@ -1062,7 +1068,7 @@ function switchView(v) {
   document.getElementById('ideavaultView').classList.toggle('active', v==='ideavault');
   document.getElementById('adFactoryView').classList.toggle('active', v==='adfactory');
   if (v === 'tasks') {
-    document.getElementById('viewTitle').textContent = currentMyOnly ? 'My Tasks' : 'All Tasks';
+    document.getElementById('viewTitle').textContent = currentMyOnly ? 'Active Tasks' : 'All Tasks';
     renderTable();
   } else if (v === 'dashboard') {
     document.getElementById('viewTitle').textContent = 'Dashboard';
@@ -1119,7 +1125,10 @@ function getFiltered() {
       var weekAgo = new Date(now.getTime() - 7*24*60*60*1000);
       if (d < weekAgo) return false;
     }
-    if (currentMyOnly && t.assigned.indexOf(currentUser) === -1) return false;
+    if (currentMyOnly) {
+      if (t.assigned.indexOf(currentUser) === -1) return false;
+      if (t.status === 'Ready') return false; // Ready tasks already in All Tasks
+    }
     if (gf && t.game !== gf) return false;
     if (sf && t.status !== sf) return false;
     if (ctf && (t.creativeType||'') !== ctf) return false;
@@ -1225,7 +1234,7 @@ function renderTable() {
   var active = tasks.filter(function(t){return !t.archived});
   document.getElementById('tabAll').textContent = active.length;
   document.getElementById('navTaskCount').textContent = active.length;
-  var myCount = active.filter(function(t){return t.assigned.indexOf(currentUser)!==-1}).length;
+  var myCount = active.filter(function(t){return t.assigned.indexOf(currentUser)!==-1 && t.status!=='Ready'}).length;
   document.getElementById('navMyCount').textContent = myCount;
   // This week
   var now = new Date(); var weekAgo = new Date(now.getTime()-7*24*60*60*1000);
@@ -1642,8 +1651,9 @@ function ideaToTask(ideaId) {
     archived: false
   };
   tasks.push(newTask);
-  save(); populateFilters(); renderAll();
-  alert('Task '+newTask.id+' created from idea "'+idea.title+'"!');
+  ideas = ideas.filter(function(i){return i.id !== ideaId});
+  save(); populateFilters(); renderAll(); renderIdeas();
+  showToast('Task '+newTask.id+' created — idea removed from vault');
 }
 
 function deleteIdea(ideaId) {

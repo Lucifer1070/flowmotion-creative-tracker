@@ -813,23 +813,22 @@ const defaultIdeas = [
 let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || JSON.parse(JSON.stringify(defaultTasks));
 let ideas = JSON.parse(localStorage.getItem(IDEAS_KEY)) || JSON.parse(JSON.stringify(defaultIdeas));
 // Migrate old CPT- IDs to new GameCode-Type format
-(function migrateIds() {
-  var MIGRATE_GAME = {'Cooking Chaos':'CHA','Cooking Crush':'CRU','Cooking Crunch':'CRN','Kitchen Craze':'KC','Gym Mania':'GM','My Hotel':'MH','Recipe Rush':'RR'};
-  var MIGRATE_TYPE = {'Video Ad':'VID','Static Ad':'STA','Playable Ad':'PLA'};
+function migrateTaskIds() {
   var needsMigration = tasks.some(function(t){ return t.id && t.id.indexOf('CPT-') === 0; });
   if (!needsMigration) return;
   var counters = {};
   tasks.forEach(function(t) {
     if (t.id && t.id.indexOf('CPT-') === 0) {
-      var gc = MIGRATE_GAME[t.game] || 'XX';
-      var tc = MIGRATE_TYPE[t.type] || 'VID';
+      var gc = GAME_TO_CODE[t.game] || 'XX';
+      var tc = TYPE_TO_CODE[t.type] || 'VID';
       var prefix = gc + '-' + tc + '-';
       counters[prefix] = (counters[prefix] || 0) + 1;
       t.id = prefix + String(counters[prefix]).padStart(3, '0');
     }
   });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-})();
+}
+migrateTaskIds();
 let currentView = 'tasks';
 let currentFilter = 'all';
 let currentMyOnly = false;
@@ -949,6 +948,7 @@ function fetchFromSheet(callback) {
           if (!t.roasByDay || typeof t.roasByDay !== 'object') t.roasByDay = {};
           return t;
         });
+        migrateTaskIds();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
         if (data.ideas && data.ideas.length > 0) {
           ideas = data.ideas;
@@ -964,6 +964,10 @@ function fetchFromSheet(callback) {
         }
         sheetConnected = true;
         updateSyncBadge('synced');
+        // If migration happened, push updated IDs back to Sheet
+        if (!tasks.some(function(t){ return t.id && t.id.indexOf('CPT-') === 0; })) {
+          syncToSheet(false, false);
+        }
         populateFilters();
         renderAll();
       } else if (data.success && (!data.tasks || data.tasks.length === 0)) {

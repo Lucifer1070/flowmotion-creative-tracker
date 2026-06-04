@@ -810,25 +810,36 @@ const defaultIdeas = [
   {id:3,title:'Holiday themed static banners',tags:['Static','All Games'],desc:'Create seasonal banner set for Q4 holiday campaigns.'}
 ];
 
+// Clear corrupted localStorage from migration attempts
+if (localStorage.getItem('fm_id_version') !== 'v2') {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(IDEAS_KEY);
+  localStorage.setItem('fm_id_version', 'v2');
+}
 let tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || JSON.parse(JSON.stringify(defaultTasks));
 let ideas = JSON.parse(localStorage.getItem(IDEAS_KEY)) || JSON.parse(JSON.stringify(defaultIdeas));
 // Migrate old CPT- IDs to new GameCode-Type format
-function migrateTaskIds() {
+var _MIG_GAME = {'Cooking Chaos':'CHA','Cooking Crush':'CRU','Cooking Crunch':'CRN','Kitchen Craze':'KC','Gym Mania':'GM','My Hotel':'MH','Recipe Rush':'RR'};
+var _MIG_TYPE = {'Video Ad':'VID','Static Ad':'STA','Playable Ad':'PLA'};
+function migrateTaskIds(syncAfter) {
   var needsMigration = tasks.some(function(t){ return t.id && t.id.indexOf('CPT-') === 0; });
   if (!needsMigration) return;
   var counters = {};
   tasks.forEach(function(t) {
     if (t.id && t.id.indexOf('CPT-') === 0) {
-      var gc = GAME_TO_CODE[t.game] || 'XX';
-      var tc = TYPE_TO_CODE[t.type] || 'VID';
+      var gc = _MIG_GAME[t.game] || 'XX';
+      var tc = _MIG_TYPE[t.type] || 'VID';
       var prefix = gc + '-' + tc + '-';
       counters[prefix] = (counters[prefix] || 0) + 1;
       t.id = prefix + String(counters[prefix]).padStart(3, '0');
     }
   });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  if (syncAfter) {
+    setTimeout(function(){ syncToSheet(false, false); }, 5000);
+  }
 }
-migrateTaskIds();
+// Migration available but only runs manually — new tasks auto-get new IDs
 let currentView = 'tasks';
 let currentFilter = 'all';
 let currentMyOnly = false;
@@ -948,7 +959,6 @@ function fetchFromSheet(callback) {
           if (!t.roasByDay || typeof t.roasByDay !== 'object') t.roasByDay = {};
           return t;
         });
-        migrateTaskIds();
         localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
         if (data.ideas && data.ideas.length > 0) {
           ideas = data.ideas;
@@ -964,12 +974,9 @@ function fetchFromSheet(callback) {
         }
         sheetConnected = true;
         updateSyncBadge('synced');
-        // If migration happened, push updated IDs back to Sheet
-        if (!tasks.some(function(t){ return t.id && t.id.indexOf('CPT-') === 0; })) {
-          syncToSheet(false, false);
-        }
         populateFilters();
         renderAll();
+        renderIdeas();
       } else if (data.success && (!data.tasks || data.tasks.length === 0)) {
         // Sheet is empty — show export option
         sheetConnected = true;
@@ -1191,6 +1198,12 @@ function renderTable() {
   var tbody = document.getElementById('taskTableBody');
   var html = '';
   list.forEach(function(t) {
+    if (!t || !t.id) return; // skip invalid tasks
+    if (!t.status) t.status = 'Brief';
+    if (!t.assigned) t.assigned = [];
+    if (!Array.isArray(t.assigned)) t.assigned = [t.assigned];
+    if (!t.priority) t.priority = 1;
+    if (!t.networks) t.networks = [];
     var ctr = t.spend > 0 && t.cpi != null ? t.cpi : null;
     var statusClass = 'badge-' + t.status.toLowerCase().replace(' ','');
     var roasClass = t.d7roas > 0 ? 'metric-positive' : (t.d7roas < 0 ? 'metric-negative' : 'metric-neutral');

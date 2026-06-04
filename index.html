@@ -2506,7 +2506,7 @@ function toggleStatusDropdown(cell, id) {
   _openDropdown = dd;
 }
 function changeStatus(id, newStatus) {
-  if (!canEdit()) { showToast('Viewers cannot change status',true); return; }
+  if (!identityChosen) { showToast('Please select your name first',true); return; }
   var t = tasks.find(function(x){return x.id===id});
   if (!t) return;
   var oldStatus = t.status;

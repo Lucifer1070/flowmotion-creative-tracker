@@ -2512,6 +2512,10 @@ function changeStatus(id, newStatus) {
   var oldStatus = t.status;
   if (newStatus === 'Archive') { t.archived = true; }
   else { t.archived = false; t.status = newStatus; }
+  // Celebrate when going Live!
+  if (newStatus === 'Live' && oldStatus !== 'Live') {
+    celebrateLive(t.name);
+  }
   // Discord notify: only Neeraj, only when changing TO Ready, only once per task
   if (newStatus === 'Ready' && oldStatus !== 'Ready' && currentUser === 'Neeraj') {
     pendingDiscordQueue.push(Object.assign({}, t));
@@ -2521,6 +2525,94 @@ function changeStatus(id, newStatus) {
   }
   save(); renderTable();
   if (_openDropdown) { _openDropdown.classList.remove('open'); _openDropdown = null; }
+}
+
+// ============ LIVE CELEBRATION ============
+function playAchievementSound() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+    notes.forEach(function(freq, i) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.12 + 0.4);
+      osc.start(ctx.currentTime + i * 0.12);
+      osc.stop(ctx.currentTime + i * 0.12 + 0.4);
+    });
+    // Final shimmer
+    var osc2 = ctx.createOscillator();
+    var g2 = ctx.createGain();
+    osc2.connect(g2); g2.connect(ctx.destination);
+    osc2.type = 'triangle';
+    osc2.frequency.value = 1568; // G6
+    g2.gain.setValueAtTime(0.15, ctx.currentTime + 0.5);
+    g2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.2);
+    osc2.start(ctx.currentTime + 0.5);
+    osc2.stop(ctx.currentTime + 1.2);
+  } catch(e) {}
+}
+
+function launchConfetti() {
+  var canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:9999;pointer-events:none';
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  var ctx = canvas.getContext('2d');
+  var pieces = [];
+  var colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#a855f7','#ec4899','#06b6d4','#fff'];
+  for (var i = 0; i < 120; i++) {
+    pieces.push({
+      x: canvas.width / 2 + (Math.random() - 0.5) * 200,
+      y: canvas.height / 2,
+      vx: (Math.random() - 0.5) * 18,
+      vy: -Math.random() * 18 - 4,
+      w: Math.random() * 8 + 4,
+      h: Math.random() * 6 + 2,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      rotation: Math.random() * 360,
+      rotSpeed: (Math.random() - 0.5) * 12,
+      gravity: 0.25 + Math.random() * 0.1,
+      opacity: 1
+    });
+  }
+  var frame = 0;
+  function animate() {
+    frame++;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    var alive = false;
+    pieces.forEach(function(p) {
+      p.x += p.vx;
+      p.vy += p.gravity;
+      p.y += p.vy;
+      p.vx *= 0.99;
+      p.rotation += p.rotSpeed;
+      if (frame > 40) p.opacity -= 0.02;
+      if (p.opacity <= 0) return;
+      alive = true;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.opacity);
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+    if (alive && frame < 120) requestAnimationFrame(animate);
+    else document.body.removeChild(canvas);
+  }
+  requestAnimationFrame(animate);
+}
+
+function celebrateLive(taskName) {
+  launchConfetti();
+  playAchievementSound();
+  showToast('🎉 ' + taskName + ' is now LIVE!');
 }
 
 // ============ DISCORD WEBHOOK ============

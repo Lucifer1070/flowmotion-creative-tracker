@@ -2493,9 +2493,6 @@ function toggleStatusDropdown(cell, id) {
   // Close any open dropdown
   if (_openDropdown && _openDropdown !== dd) { _openDropdown.classList.remove('open'); }
   if (dd.classList.contains('open')) { dd.classList.remove('open'); _openDropdown = null; return; }
-  // Store click position for confetti
-  var rect = cell.getBoundingClientRect();
-  _lastStatusClickPos = {x: rect.left + rect.width/2, y: rect.top};
   var statuses = ['Brief','Design','Ready','Live','On Hold','Stopped','Archive'];
   var stColors2 = {'Brief':'#a855f7','Design':'#60a5fa','Ready':'#10b981','Live':'#3b82f6','On Hold':'#f59e0b','Stopped':'#64748b','Archive':'#374151'};
   var t = tasks.find(function(x){return x.id===id});
@@ -2518,7 +2515,8 @@ function changeStatus(id, newStatus) {
   else { t.archived = false; t.status = newStatus; }
   // Celebrate when going Live!
   if (newStatus === 'Live' && oldStatus !== 'Live') {
-    celebrateLive(t.name);
+    playAchievementSound();
+    showToast(t.name + ' is now LIVE!');
   }
   // Discord notify: only Neeraj, only when changing TO Ready, only once per task
   if (newStatus === 'Ready' && oldStatus !== 'Ready' && currentUser === 'Neeraj') {
@@ -2531,200 +2529,167 @@ function changeStatus(id, newStatus) {
   if (_openDropdown) { _openDropdown.classList.remove('open'); _openDropdown = null; }
 }
 
-// ============ LIVE CELEBRATION ============
+// ============ LIVE SOUND ============
 function playAchievementSound() {
   try {
     var ctx = new (window.AudioContext || window.webkitAudioContext)();
-    var notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+    var notes = [261.63, 329.63, 392.00, 523.25];
     notes.forEach(function(freq, i) {
       var osc = ctx.createOscillator();
       var gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.3, ctx.currentTime + i * 0.12);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.12 + 0.4);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.2, ctx.currentTime + i * 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.12 + 0.35);
       osc.start(ctx.currentTime + i * 0.12);
-      osc.stop(ctx.currentTime + i * 0.12 + 0.4);
+      osc.stop(ctx.currentTime + i * 0.12 + 0.35);
     });
-    // Final shimmer
-    var osc2 = ctx.createOscillator();
-    var g2 = ctx.createGain();
-    osc2.connect(g2); g2.connect(ctx.destination);
-    osc2.type = 'triangle';
-    osc2.frequency.value = 1568; // G6
-    g2.gain.setValueAtTime(0.15, ctx.currentTime + 0.5);
-    g2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.2);
-    osc2.start(ctx.currentTime + 0.5);
-    osc2.stop(ctx.currentTime + 1.2);
   } catch(e) {}
 }
 
-function launchConfetti(originX, originY) {
-  var canvas = document.createElement('canvas');
-  canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:9999;pointer-events:none';
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  document.body.appendChild(canvas);
-  var ctx = canvas.getContext('2d');
-  var pieces = [];
-  var colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#a855f7','#ec4899','#06b6d4','#fff'];
-  var cx = originX || canvas.width / 2;
-  var cy = originY || canvas.height / 2;
-  for (var i = 0; i < 60; i++) {
-    pieces.push({
-      x: cx + (Math.random() - 0.5) * 40,
-      y: cy,
-      vx: (Math.random() - 0.5) * 10,
-      vy: -Math.random() * 12 - 2,
-      w: Math.random() * 5 + 2,
-      h: Math.random() * 3 + 1,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      rotation: Math.random() * 360,
-      rotSpeed: (Math.random() - 0.5) * 10,
-      gravity: 0.2 + Math.random() * 0.08,
-      opacity: 1
-    });
-  }
-  var frame = 0;
-  function animate() {
-    frame++;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    var alive = false;
-    pieces.forEach(function(p) {
-      p.x += p.vx;
-      p.vy += p.gravity;
-      p.y += p.vy;
-      p.vx *= 0.98;
-      p.rotation += p.rotSpeed;
-      if (frame > 30) p.opacity -= 0.03;
-      if (p.opacity <= 0) return;
-      alive = true;
-      ctx.save();
-      ctx.globalAlpha = Math.max(0, p.opacity);
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.rotation * Math.PI / 180);
-      ctx.fillStyle = p.color;
-      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-      ctx.restore();
-    });
-    if (alive && frame < 80) requestAnimationFrame(animate);
-    else document.body.removeChild(canvas);
-  }
-  requestAnimationFrame(animate);
-}
-
-var _lastStatusClickPos = {x: 0, y: 0};
-function celebrateLive(taskName) {
-  launchConfetti(_lastStatusClickPos.x, _lastStatusClickPos.y);
-  playAchievementSound();
-  showToast(taskName + ' is now LIVE!');
-}
-
-// ============ AMBIENT MUSIC ============
-var _ambientCtx = null;
-var _ambientPlaying = false;
-var _ambientNodes = [];
-var _ambientMaster = null;
-var _ambientInterval = null;
+// ============ AMBIENT MUSIC — Soft Lo-fi Pad ============
+var _amCtx = null;
+var _amPlaying = false;
+var _amMaster = null;
+var _amNodes = [];
+var _amTimer = null;
+var _amStep = 0;
 
 function toggleMusic() {
-  if (_ambientPlaying) stopAmbient();
-  else startAmbient();
+  if (_amPlaying) stopMusic();
+  else startMusic();
 }
 
-function startAmbient() {
+// Warm pad tone — soft sine + filtered harmonics, very low pitch
+function _padVoice(freq, vol) {
+  var osc = _amCtx.createOscillator();
+  var g = _amCtx.createGain();
+  var flt = _amCtx.createBiquadFilter();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  flt.type = 'lowpass';
+  flt.frequency.value = freq * 2.5;
+  flt.Q.value = 0.5;
+  g.gain.value = vol;
+  osc.connect(flt);
+  flt.connect(g);
+  g.connect(_amMaster);
+  osc.start();
+  _amNodes.push({osc: osc, gain: g});
+  return {osc: osc, gain: g};
+}
+
+// Single melody note with soft attack and long decay
+function _softNote(freq, time, vol, dur) {
+  if (!_amCtx || !_amMaster) return;
+  var osc = _amCtx.createOscillator();
+  var g = _amCtx.createGain();
+  var flt = _amCtx.createBiquadFilter();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  flt.type = 'lowpass';
+  flt.frequency.value = freq * 3;
+  flt.Q.value = 0.3;
+  g.gain.setValueAtTime(0, time);
+  g.gain.linearRampToValueAtTime(vol, time + 0.08);
+  g.gain.linearRampToValueAtTime(vol * 0.7, time + 0.3);
+  g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
+  osc.connect(flt);
+  flt.connect(g);
+  g.connect(_amMaster);
+  osc.start(time);
+  osc.stop(time + dur + 0.1);
+}
+
+function startMusic() {
   try {
-    if (!_ambientCtx) _ambientCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (_ambientCtx.state === 'suspended') _ambientCtx.resume();
-    _ambientMaster = _ambientCtx.createGain();
-    _ambientMaster.gain.value = 0;
-    _ambientMaster.connect(_ambientCtx.destination);
-    // Fade in
-    _ambientMaster.gain.linearRampToValueAtTime(0.12, _ambientCtx.currentTime + 2);
+    if (!_amCtx) _amCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (_amCtx.state === 'suspended') _amCtx.resume();
 
-    // Deep pad layer — warm sine chord
-    var padNotes = [110, 164.81, 220, 329.63]; // A2, E3, A3, E4
-    padNotes.forEach(function(freq) {
-      var osc = _ambientCtx.createOscillator();
-      var g = _ambientCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      g.gain.value = 0.08;
-      osc.connect(g);
-      g.connect(_ambientMaster);
-      osc.start();
-      _ambientNodes.push({osc: osc, gain: g});
-    });
+    _amMaster = _amCtx.createGain();
+    _amMaster.gain.value = 0;
+    _amMaster.connect(_amCtx.destination);
+    _amMaster.gain.linearRampToValueAtTime(1, _amCtx.currentTime + 4);
 
-    // Sub bass pulse
-    var sub = _ambientCtx.createOscillator();
-    var subG = _ambientCtx.createGain();
-    sub.type = 'sine';
-    sub.frequency.value = 55; // A1
-    subG.gain.value = 0.06;
-    sub.connect(subG);
-    subG.connect(_ambientMaster);
-    sub.start();
-    _ambientNodes.push({osc: sub, gain: subG});
+    // Reverb — two delays stacked
+    var d1 = _amCtx.createDelay(); var d1g = _amCtx.createGain();
+    d1.delayTime.value = 0.25; d1g.gain.value = 0.18;
+    var d2 = _amCtx.createDelay(); var d2g = _amCtx.createGain();
+    d2.delayTime.value = 0.5; d2g.gain.value = 0.1;
+    _amMaster.connect(d1); d1.connect(d1g); d1g.connect(_amCtx.destination);
+    _amMaster.connect(d2); d2.connect(d2g); d2g.connect(_amCtx.destination);
 
-    // Shimmer layer — slow LFO modulated triangle
-    var shimmer = _ambientCtx.createOscillator();
-    var shimG = _ambientCtx.createGain();
-    var lfo = _ambientCtx.createOscillator();
-    var lfoG = _ambientCtx.createGain();
-    shimmer.type = 'triangle';
-    shimmer.frequency.value = 440;
-    shimG.gain.value = 0.03;
+    // Warm continuous pad — very low, very soft, always playing
+    // C2 + G2 + C3 — deep warm bed
+    _padVoice(65.41, 0.025);   // C2
+    _padVoice(98.00, 0.02);    // G2
+    _padVoice(130.81, 0.015);  // C3
+
+    // Slow breathing LFO on pad volume for organic feel
+    var lfo = _amCtx.createOscillator();
+    var lfoG = _amCtx.createGain();
     lfo.type = 'sine';
-    lfo.frequency.value = 0.15;
-    lfoG.gain.value = 0.02;
+    lfo.frequency.value = 0.08; // very slow breathing
+    lfoG.gain.value = 0.008;
     lfo.connect(lfoG);
-    lfoG.connect(shimG.gain);
-    shimmer.connect(shimG);
-    shimG.connect(_ambientMaster);
-    shimmer.start();
+    _amNodes.forEach(function(n) { lfoG.connect(n.gain.gain); });
     lfo.start();
-    _ambientNodes.push({osc: shimmer, gain: shimG}, {osc: lfo, gain: lfoG});
+    _amNodes.push({osc: lfo, gain: lfoG});
 
-    // Melodic sparkles — random pentatonic notes every few seconds
-    var sparkleNotes = [523.25, 587.33, 659.25, 783.99, 880, 1046.50, 1174.66, 1318.51];
-    _ambientInterval = setInterval(function() {
-      if (!_ambientPlaying) return;
-      var freq = sparkleNotes[Math.floor(Math.random() * sparkleNotes.length)];
-      var osc = _ambientCtx.createOscillator();
-      var g = _ambientCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      g.gain.setValueAtTime(0.04 + Math.random() * 0.03, _ambientCtx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, _ambientCtx.currentTime + 2.5 + Math.random() * 2);
-      osc.connect(g);
-      g.connect(_ambientMaster);
-      osc.start();
-      osc.stop(_ambientCtx.currentTime + 4);
-    }, 2500 + Math.random() * 2000);
-
-    _ambientPlaying = true;
+    _amPlaying = true;
+    _amStep = 0;
     localStorage.setItem('fm_music', 'on');
     document.getElementById('musicToggle').style.borderColor = 'var(--accent)';
     document.getElementById('musicToggle').style.background = 'rgba(59,130,246,.1)';
     document.getElementById('musicIcon').textContent = '♫';
     document.getElementById('musicLabel').textContent = 'On';
-  } catch(e) { console.log('Audio error:', e); }
+
+    // Continuous slow melody loop — pentatonic in C, low octave
+    // Flows like a gentle stream, no gaps
+    var melodyPatterns = [
+      // Pattern 1: gentle ascending
+      [130.81, 146.83, 164.81, 196.00, 220.00, 196.00, 164.81, 146.83],
+      // Pattern 2: soft wave
+      [164.81, 196.00, 220.00, 196.00, 164.81, 146.83, 130.81, 146.83],
+      // Pattern 3: dreamy float
+      [196.00, 220.00, 261.63, 220.00, 196.00, 164.81, 196.00, 220.00],
+      // Pattern 4: descending calm
+      [261.63, 220.00, 196.00, 164.81, 146.83, 130.81, 146.83, 164.81],
+      // Pattern 5: minimal movement
+      [146.83, 164.81, 146.83, 130.81, 146.83, 164.81, 196.00, 164.81],
+      // Pattern 6: low hum melody
+      [130.81, 130.81, 146.83, 164.81, 146.83, 130.81, 164.81, 146.83]
+    ];
+
+    function playNextPattern() {
+      if (!_amPlaying) return;
+      var pattern = melodyPatterns[_amStep % melodyPatterns.length];
+      var now = _amCtx.currentTime;
+      var noteSpacing = 1.8; // slow pace — each note ~1.8 seconds apart
+
+      pattern.forEach(function(freq, i) {
+        _softNote(freq, now + i * noteSpacing, 0.025 + Math.random() * 0.01, 3.5);
+      });
+
+      _amStep++;
+      // Next pattern starts as current one is finishing — continuous flow
+      _pianoTimer = setTimeout(playNextPattern, pattern.length * noteSpacing * 1000 - 500);
+    }
+    playNextPattern();
+  } catch(e) { console.log('Music error:', e); }
 }
 
-function stopAmbient() {
-  if (_ambientMaster) {
-    _ambientMaster.gain.linearRampToValueAtTime(0, _ambientCtx.currentTime + 1.5);
+function stopMusic() {
+  _amPlaying = false;
+  if (_pianoTimer) { clearTimeout(_pianoTimer); _pianoTimer = null; }
+  if (_amMaster) {
+    _amMaster.gain.linearRampToValueAtTime(0, _amCtx.currentTime + 3);
+    setTimeout(function() {
+      _amNodes.forEach(function(n) { try { n.osc.stop(); } catch(e){} });
+      _amNodes = [];
+      _amMaster = null;
+    }, 3500);
   }
-  setTimeout(function() {
-    _ambientNodes.forEach(function(n) { try { n.osc.stop(); } catch(e){} });
-    _ambientNodes = [];
-    _ambientMaster = null;
-  }, 1600);
-  if (_ambientInterval) { clearInterval(_ambientInterval); _ambientInterval = null; }
-  _ambientPlaying = false;
   localStorage.setItem('fm_music', 'off');
   document.getElementById('musicToggle').style.borderColor = 'var(--border)';
   document.getElementById('musicToggle').style.background = 'var(--card)';
@@ -2732,12 +2697,11 @@ function stopAmbient() {
   document.getElementById('musicLabel').textContent = 'Music';
 }
 
-// Auto-resume if user had music on (needs user click first due to browser policy)
-document.addEventListener('click', function _autoResumeMusic() {
-  if (localStorage.getItem('fm_music') === 'on' && !_ambientPlaying) {
-    startAmbient();
+// Music ON by default — browser requires one click before audio can play
+document.addEventListener('click', function _autoStartMusic() {
+  if (!_amPlaying && localStorage.getItem('fm_music') !== 'off') {
+    startMusic();
   }
-  document.removeEventListener('click', _autoResumeMusic);
 }, {once: true});
 
 // ============ DISCORD WEBHOOK ============

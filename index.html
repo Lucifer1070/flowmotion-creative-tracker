@@ -1153,8 +1153,7 @@ function getFiltered() {
       if (d < weekAgo) return false;
     }
     if (currentMyOnly) {
-      if (t.assigned.indexOf(currentUser) === -1) return false;
-      if (t.status === 'Ready') return false; // Ready tasks already in All Tasks
+      if (t.status === 'Ready') return false; // Active = everything except Ready
     }
     if (gf && t.game !== gf) return false;
     if (sf && t.status !== sf) return false;
@@ -1171,8 +1170,15 @@ function getFiltered() {
     }
     return true;
   });
-  // Sort
+  // Sort — default status priority: Ready > Live > Brief > Design > On Hold > Stopped
+  var STATUS_ORDER = {'Ready':0,'Live':1,'Brief':2,'Design':3,'On Hold':4,'Stopped':5};
   list.sort(function(a, b) {
+    // Primary sort: status priority (when sorting by default 'id' or 'status')
+    if (sortCol === 'id' || sortCol === 'status') {
+      var sa = STATUS_ORDER[a.status] != null ? STATUS_ORDER[a.status] : 9;
+      var sb = STATUS_ORDER[b.status] != null ? STATUS_ORDER[b.status] : 9;
+      if (sa !== sb) return sa - sb;
+    }
     var va = a[sortCol], vb = b[sortCol];
     if (va == null) va = sortDesc ? -Infinity : Infinity;
     if (vb == null) vb = sortDesc ? -Infinity : Infinity;
@@ -1267,7 +1273,7 @@ function renderTable() {
   var active = tasks.filter(function(t){return !t.archived});
   document.getElementById('tabAll').textContent = active.length;
   document.getElementById('navTaskCount').textContent = active.length;
-  var myCount = active.filter(function(t){return t.assigned.indexOf(currentUser)!==-1 && t.status!=='Ready'}).length;
+  var myCount = active.filter(function(t){return t.status!=='Ready'}).length;
   document.getElementById('navMyCount').textContent = myCount;
   // This week
   var now = new Date(); var weekAgo = new Date(now.getTime()-7*24*60*60*1000);

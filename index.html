@@ -2547,149 +2547,65 @@ function playAchievementSound() {
   } catch(e) {}
 }
 
-// ============ AMBIENT MUSIC — Soft Lo-fi Pad ============
-var _amCtx = null;
-var _amPlaying = false;
-var _amMaster = null;
-var _amNodes = [];
-var _amTimer = null;
-var _amStep = 0;
+// ============ AMBIENT MUSIC — MP3 Player ============
+var _bgAudio = null;
+var _musicPlaying = false;
+var _musicVolume = 0.08; // Very low — background whisper level
+var _musicStarted = false;
 
 function toggleMusic() {
-  if (_amPlaying) stopMusic();
+  if (_musicPlaying) stopMusic();
   else startMusic();
 }
 
-// Warm pad tone — soft sine + filtered harmonics, very low pitch
-function _padVoice(freq, vol) {
-  var osc = _amCtx.createOscillator();
-  var g = _amCtx.createGain();
-  var flt = _amCtx.createBiquadFilter();
-  osc.type = 'sine';
-  osc.frequency.value = freq;
-  flt.type = 'lowpass';
-  flt.frequency.value = freq * 2.5;
-  flt.Q.value = 0.5;
-  g.gain.value = vol;
-  osc.connect(flt);
-  flt.connect(g);
-  g.connect(_amMaster);
-  osc.start();
-  _amNodes.push({osc: osc, gain: g});
-  return {osc: osc, gain: g};
-}
-
-// Single melody note with soft attack and long decay
-function _softNote(freq, time, vol, dur) {
-  if (!_amCtx || !_amMaster) return;
-  var osc = _amCtx.createOscillator();
-  var g = _amCtx.createGain();
-  var flt = _amCtx.createBiquadFilter();
-  osc.type = 'sine';
-  osc.frequency.value = freq;
-  flt.type = 'lowpass';
-  flt.frequency.value = freq * 3;
-  flt.Q.value = 0.3;
-  g.gain.setValueAtTime(0, time);
-  g.gain.linearRampToValueAtTime(vol, time + 0.08);
-  g.gain.linearRampToValueAtTime(vol * 0.7, time + 0.3);
-  g.gain.exponentialRampToValueAtTime(0.0001, time + dur);
-  osc.connect(flt);
-  flt.connect(g);
-  g.connect(_amMaster);
-  osc.start(time);
-  osc.stop(time + dur + 0.1);
+function _initAudio() {
+  if (!_bgAudio) {
+    _bgAudio = new Audio('music.mp3?v=' + Date.now());
+    _bgAudio.loop = true;
+    _bgAudio.volume = 0;
+    _bgAudio.preload = 'auto';
+  }
 }
 
 function startMusic() {
-  try {
-    if (!_amCtx) _amCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (_amCtx.state === 'suspended') _amCtx.resume();
-
-    _amMaster = _amCtx.createGain();
-    _amMaster.gain.value = 0;
-    _amMaster.connect(_amCtx.destination);
-    _amMaster.gain.linearRampToValueAtTime(1, _amCtx.currentTime + 4);
-
-    // Reverb — two delays stacked
-    var d1 = _amCtx.createDelay(); var d1g = _amCtx.createGain();
-    d1.delayTime.value = 0.25; d1g.gain.value = 0.18;
-    var d2 = _amCtx.createDelay(); var d2g = _amCtx.createGain();
-    d2.delayTime.value = 0.5; d2g.gain.value = 0.1;
-    _amMaster.connect(d1); d1.connect(d1g); d1g.connect(_amCtx.destination);
-    _amMaster.connect(d2); d2.connect(d2g); d2g.connect(_amCtx.destination);
-
-    // Warm continuous pad — very low, very soft, always playing
-    // C2 + G2 + C3 — deep warm bed
-    _padVoice(65.41, 0.025);   // C2
-    _padVoice(98.00, 0.02);    // G2
-    _padVoice(130.81, 0.015);  // C3
-
-    // Slow breathing LFO on pad volume for organic feel
-    var lfo = _amCtx.createOscillator();
-    var lfoG = _amCtx.createGain();
-    lfo.type = 'sine';
-    lfo.frequency.value = 0.08; // very slow breathing
-    lfoG.gain.value = 0.008;
-    lfo.connect(lfoG);
-    _amNodes.forEach(function(n) { lfoG.connect(n.gain.gain); });
-    lfo.start();
-    _amNodes.push({osc: lfo, gain: lfoG});
-
-    _amPlaying = true;
-    _amStep = 0;
-    localStorage.setItem('fm_music', 'on');
-    document.getElementById('musicToggle').style.borderColor = 'var(--accent)';
-    document.getElementById('musicToggle').style.background = 'rgba(59,130,246,.1)';
-    document.getElementById('musicIcon').textContent = '♫';
-    document.getElementById('musicLabel').textContent = 'On';
-
-    // Continuous slow melody loop — pentatonic in C, low octave
-    // Flows like a gentle stream, no gaps
-    var melodyPatterns = [
-      // Pattern 1: gentle ascending
-      [130.81, 146.83, 164.81, 196.00, 220.00, 196.00, 164.81, 146.83],
-      // Pattern 2: soft wave
-      [164.81, 196.00, 220.00, 196.00, 164.81, 146.83, 130.81, 146.83],
-      // Pattern 3: dreamy float
-      [196.00, 220.00, 261.63, 220.00, 196.00, 164.81, 196.00, 220.00],
-      // Pattern 4: descending calm
-      [261.63, 220.00, 196.00, 164.81, 146.83, 130.81, 146.83, 164.81],
-      // Pattern 5: minimal movement
-      [146.83, 164.81, 146.83, 130.81, 146.83, 164.81, 196.00, 164.81],
-      // Pattern 6: low hum melody
-      [130.81, 130.81, 146.83, 164.81, 146.83, 130.81, 164.81, 146.83]
-    ];
-
-    function playNextPattern() {
-      if (!_amPlaying) return;
-      var pattern = melodyPatterns[_amStep % melodyPatterns.length];
-      var now = _amCtx.currentTime;
-      var noteSpacing = 1.8; // slow pace — each note ~1.8 seconds apart
-
-      pattern.forEach(function(freq, i) {
-        _softNote(freq, now + i * noteSpacing, 0.025 + Math.random() * 0.01, 3.5);
-      });
-
-      _amStep++;
-      // Next pattern starts as current one is finishing — continuous flow
-      _pianoTimer = setTimeout(playNextPattern, pattern.length * noteSpacing * 1000 - 500);
-    }
-    playNextPattern();
-  } catch(e) { console.log('Music error:', e); }
+  _initAudio();
+  _bgAudio.volume = 0;
+  var playPromise = _bgAudio.play();
+  if (playPromise !== undefined) {
+    playPromise.then(function() {
+      _musicStarted = true;
+      // Smooth fade in over 3 seconds
+      var fadeIn = setInterval(function() {
+        if (!_musicPlaying) { clearInterval(fadeIn); return; }
+        if (_bgAudio && _bgAudio.volume < _musicVolume) {
+          _bgAudio.volume = Math.min(_bgAudio.volume + 0.003, _musicVolume);
+        } else { clearInterval(fadeIn); }
+      }, 50);
+      _musicPlaying = true;
+      localStorage.setItem('fm_music', 'on');
+      document.getElementById('musicToggle').style.borderColor = 'var(--accent)';
+      document.getElementById('musicToggle').style.background = 'rgba(59,130,246,.1)';
+      document.getElementById('musicIcon').textContent = '♫';
+      document.getElementById('musicLabel').textContent = 'On';
+    }).catch(function(e) {
+      console.log('Music play failed, will retry on next click:', e);
+    });
+  }
 }
 
 function stopMusic() {
-  _amPlaying = false;
-  if (_pianoTimer) { clearTimeout(_pianoTimer); _pianoTimer = null; }
-  if (_amMaster) {
-    _amMaster.gain.linearRampToValueAtTime(0, _amCtx.currentTime + 3);
-    setTimeout(function() {
-      _amNodes.forEach(function(n) { try { n.osc.stop(); } catch(e){} });
-      _amNodes = [];
-      _amMaster = null;
-    }, 3500);
-  }
+  if (!_bgAudio) return;
+  // Smooth fade out over 2 seconds
+  var fadeOut = setInterval(function() {
+    if (_bgAudio.volume > 0.005) {
+      _bgAudio.volume = Math.max(_bgAudio.volume - 0.005, 0);
+    } else {
+      clearInterval(fadeOut);
+      _bgAudio.pause();
+      _bgAudio.volume = 0;
+    }
+  }, 40);
+  _musicPlaying = false;
   localStorage.setItem('fm_music', 'off');
   document.getElementById('musicToggle').style.borderColor = 'var(--border)';
   document.getElementById('musicToggle').style.background = 'var(--card)';
@@ -2697,12 +2613,16 @@ function stopMusic() {
   document.getElementById('musicLabel').textContent = 'Music';
 }
 
-// Music ON by default — browser requires one click before audio can play
+// Music ON by default — keeps trying on each click until it plays
+// (browsers block audio until user interaction, and sometimes first attempt fails)
+_initAudio(); // preload the file
 document.addEventListener('click', function _autoStartMusic() {
-  if (!_amPlaying && localStorage.getItem('fm_music') !== 'off') {
+  if (!_musicStarted && localStorage.getItem('fm_music') !== 'off') {
     startMusic();
+  } else if (_musicStarted) {
+    document.removeEventListener('click', _autoStartMusic);
   }
-}, {once: true});
+});
 
 // ============ DISCORD WEBHOOK ============
 var DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1511332125377429544/uRB5VG85MP8IKFU3pxlFS1keSDBXBvCOvO-h1Sm2CSJTlEKo1l3udX1TptarnAFgXT2Y';

@@ -235,6 +235,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
 @media(max-width:900px){.sidebar{width:60px}.sidebar-brand,.nav-label,.status-summary h4,.status-item span:not(.count){display:none}.nav-item{justify-content:center;padding:12px}.nav-item .badge{display:none}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 
@@ -415,11 +416,13 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
 
 <!-- Identity Picker Overlay -->
 <div id="identityOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;align-items:center;justify-content:center">
-  <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:360px;width:90%;text-align:center">
+  <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;max-width:380px;width:90%;text-align:center">
     <div style="width:56px;height:56px;background:linear-gradient(135deg,#3b82f6,#1e40af);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:18px;color:#fff;margin:0 auto 16px">FME</div>
     <h2 style="font-size:18px;color:#f1f5f9;margin-bottom:4px">FME Creative Tracker</h2>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:24px">Select your name to continue</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:24px">Sign in with your Flowmotion email</p>
+    <div id="googleSignInBtn" style="display:flex;justify-content:center;margin-bottom:16px"></div>
     <div id="identityList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
+    <p id="loginError" style="font-size:11px;color:var(--red);display:none;margin-bottom:12px"></p>
     <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:8px">
       <button onclick="loginAsGuest()" style="padding:8px 20px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;width:100%">Continue as Guest (View Only)</button>
     </div>
@@ -684,11 +687,23 @@ const NETWORKS = ['Facebook','Google Ads','TikTok','Unity','AppLovin','IronSourc
 // Role-based team: {name, role} where role = 'admin', 'editor', or 'viewer'
 var ROLE_KEY = 'fm_team_roles';
 var ADMIN_PIN_HASH = '14739af6b6a608ef0d4fc4fd9cb54f8f0cc463f66239a1da5b3512b54f65cb5c';
+var GOOGLE_CLIENT_ID = '430107123580-m148ghhr0qt4vgjc7dv5rqcipajvsp91.apps.googleusercontent.com';
+
+// Email to team member mapping
+var EMAIL_TO_TEAM = {
+  'neeraj@flowmotionentertainment.com': {name: 'Neeraj', role: 'admin'},
+  'adnan@flowmotionentertainment.com': {name: 'Adnan', role: 'viewer'},
+  'dario@flowmotionentertainment.com': {name: 'Dario', role: 'viewer'},
+  'babur@flowmotionentertainment.com': {name: 'Babur', role: 'viewer'},
+  'lydia@flowmotionentertainment.com': {name: 'Lydia', role: 'viewer'}
+};
+
 var adminUnlocked = sessionStorage.getItem('fm_admin_unlocked') === 'true';
 var currentUser = sessionStorage.getItem('fm_current_user') || '';
+var currentUserEmail = sessionStorage.getItem('fm_current_email') || '';
 var identityChosen = !!currentUser;
-let teamMembers = JSON.parse(localStorage.getItem(TEAM_KEY)) || ['Neeraj','Adnan'];
-var teamRoles = JSON.parse(localStorage.getItem(ROLE_KEY)) || {Neeraj:'admin',Adnan:'editor'};
+let teamMembers = JSON.parse(localStorage.getItem(TEAM_KEY)) || ['Neeraj','Adnan','Dario','Babur','Lydia'];
+var teamRoles = JSON.parse(localStorage.getItem(ROLE_KEY)) || {Neeraj:'admin',Adnan:'viewer',Dario:'viewer',Babur:'viewer',Lydia:'viewer'};
 
 function formatShortDate(dateStr) {
   if (!dateStr) return '—';
@@ -714,20 +729,75 @@ async function hashPin(pin) {
 }
 
 function showIdentityPicker() {
-  var list = document.getElementById('identityList');
-  var html = '';
-  teamMembers.forEach(function(name) {
-    var role = teamRoles[name] || 'viewer';
-    var roleColor = role==='admin'?'var(--orange)':(role==='editor'?'var(--accent)':'var(--muted)');
-    var roleBg = role==='admin'?'rgba(245,158,11,.15)':(role==='editor'?'rgba(59,130,246,.15)':'rgba(100,116,139,.15)');
-    html += '<button onclick="selectIdentity(\''+name+'\')" style="padding:10px 16px;background:var(--bg);border:1px solid var(--border);border-radius:10px;color:#f1f5f9;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .15s;text-align:left" onmouseover="this.style.borderColor=\'var(--accent)\'" onmouseout="this.style.borderColor=\'var(--border)\'">';
-    html += '<span style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;flex-shrink:0">'+name.slice(0,2).toUpperCase()+'</span>';
-    html += '<span style="flex:1;font-weight:500">'+name+'</span>';
-    html += '<span style="font-size:9px;padding:2px 8px;border-radius:4px;background:'+roleBg+';color:'+roleColor+';font-weight:600;text-transform:uppercase">'+role+'</span>';
-    html += '</button>';
-  });
-  list.innerHTML = html;
+  document.getElementById('identityList').innerHTML = '';
+  document.getElementById('loginError').style.display = 'none';
   document.getElementById('identityOverlay').style.display = 'flex';
+  // Initialize Google Sign-In button
+  if (window.google && google.accounts) {
+    initGoogleSignIn();
+  } else {
+    // Wait for GIS script to load
+    var waitGIS = setInterval(function() {
+      if (window.google && google.accounts) {
+        clearInterval(waitGIS);
+        initGoogleSignIn();
+      }
+    }, 200);
+  }
+}
+
+function initGoogleSignIn() {
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleGoogleLogin,
+    auto_select: false
+  });
+  google.accounts.id.renderButton(
+    document.getElementById('googleSignInBtn'),
+    { theme: 'filled_blue', size: 'large', width: 300, text: 'signin_with', shape: 'pill' }
+  );
+}
+
+function handleGoogleLogin(response) {
+  // Decode JWT token
+  var payload = JSON.parse(atob(response.credential.split('.')[1]));
+  var email = payload.email.toLowerCase();
+  var fullName = payload.name;
+
+  // Check if email is in team
+  var teamInfo = EMAIL_TO_TEAM[email];
+  if (teamInfo) {
+    document.getElementById('identityOverlay').style.display = 'none';
+    currentUserEmail = email;
+    sessionStorage.setItem('fm_current_email', email);
+    // Admin gets auto-unlocked via Google login (no PIN needed)
+    if (teamInfo.role === 'admin') {
+      adminUnlocked = true;
+      sessionStorage.setItem('fm_admin_unlocked', 'true');
+    }
+    setCurrentUser(teamInfo.name);
+    showToast('Welcome, ' + teamInfo.name + '!');
+    renderAll(); renderIdeas();
+  } else if (email.endsWith('@flowmotionentertainment.com')) {
+    // FME email but not in team list — add as viewer
+    document.getElementById('identityOverlay').style.display = 'none';
+    var firstName = fullName.split(' ')[0];
+    currentUserEmail = email;
+    sessionStorage.setItem('fm_current_email', email);
+    if (teamMembers.indexOf(firstName) === -1) {
+      teamMembers.push(firstName);
+      teamRoles[firstName] = 'viewer';
+      localStorage.setItem(TEAM_KEY, JSON.stringify(teamMembers));
+      saveRoles();
+    }
+    setCurrentUser(firstName);
+    showToast('Welcome, ' + firstName + '!');
+    renderAll(); renderIdeas();
+  } else {
+    // Not a FME email
+    document.getElementById('loginError').textContent = 'Access denied. Only @flowmotionentertainment.com emails are allowed.';
+    document.getElementById('loginError').style.display = 'block';
+  }
 }
 
 function selectIdentity(name) {
@@ -2855,6 +2925,7 @@ function renderUserMenu() {
   var listHtml = '<div style="padding:10px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)">';
   listHtml += '<span style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff">'+currentUser.slice(0,2).toUpperCase()+'</span>';
   listHtml += '<div style="flex:1"><div style="font-size:13px;color:#f1f5f9;font-weight:600">'+currentUser+'</div>';
+  if (currentUserEmail) listHtml += '<div style="font-size:10px;color:var(--muted);margin-bottom:2px">'+currentUserEmail+'</div>';
   listHtml += '<span style="font-size:10px;padding:1px 6px;border-radius:3px;background:'+rc.bg+';color:'+rc.color+';font-weight:600;text-transform:uppercase">'+myRole+'</span></div></div>';
 
   // Switch identity button
@@ -2918,10 +2989,16 @@ function updateAvatarDisplay() {
 function logoutAndPickIdentity() {
   document.getElementById('userMenu').style.display = 'none';
   sessionStorage.removeItem('fm_current_user');
+  sessionStorage.removeItem('fm_current_email');
   sessionStorage.removeItem('fm_admin_unlocked');
   currentUser = '';
+  currentUserEmail = '';
   identityChosen = false;
   adminUnlocked = false;
+  // Revoke Google session so user can pick different account
+  if (window.google && google.accounts) {
+    google.accounts.id.disableAutoSelect();
+  }
   showIdentityPicker();
 }
 // Close user menu on outside click

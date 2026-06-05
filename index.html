@@ -252,6 +252,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
     <div class="nav-item" data-view="dashboard"><span class="nav-icon">&#9635;</span>Dashboard</div>
     <div class="nav-item" data-view="ideavault"><span class="nav-icon">&#10023;</span>Idea Vault</div>
     <div class="nav-item" data-view="adfactory"><span class="nav-icon">&#128193;</span>Ad Factory</div>
+    <div class="nav-item" data-view="activitylog" id="navActivityLog" style="display:none"><span class="nav-icon">&#128220;</span>Activity Log</div>
   </div>
   <div class="status-summary">
     <h4>Status</h4>
@@ -423,10 +424,19 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
     <div id="googleSignInBtn" style="display:flex;justify-content:center;margin-bottom:16px"></div>
     <div id="identityList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px"></div>
     <p id="loginError" style="font-size:11px;color:var(--red);display:none;margin-bottom:12px"></p>
-    <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:8px">
-      <button onclick="loginAsGuest()" style="padding:8px 20px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:12px;cursor:pointer;width:100%">Continue as Guest (View Only)</button>
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px">
+      <p style="font-size:10px;color:var(--muted);margin:0">Only @flowmotionentertainment.com emails allowed</p>
     </div>
   </div>
+</div>
+
+<!-- Activity Log View -->
+<div class="ideavault-view" id="activityLogView" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+    <div><h3 style="font-size:16px;color:#f1f5f9">Activity Log</h3><p style="font-size:12px;color:var(--muted)">All changes made by team members</p></div>
+    <button onclick="clearActivityLog()" style="padding:6px 14px;background:var(--red);border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer;opacity:.7">Clear Log</button>
+  </div>
+  <div id="activityLogTable" style="overflow-y:auto;max-height:calc(100vh - 180px)"></div>
 </div>
 
 <!-- Admin PIN Modal -->
@@ -776,6 +786,7 @@ function handleGoogleLogin(response) {
       sessionStorage.setItem('fm_admin_unlocked', 'true');
     }
     setCurrentUser(teamInfo.name);
+    logActivity('Login', teamInfo.name + ' signed in via Google');
     showToast('Welcome, ' + teamInfo.name + '!');
     renderAll(); renderIdeas();
   } else if (email.endsWith('@flowmotionentertainment.com')) {
@@ -1165,6 +1176,7 @@ function switchView(v) {
   document.getElementById('dashboardView').classList.toggle('active', v==='dashboard');
   document.getElementById('ideavaultView').classList.toggle('active', v==='ideavault');
   document.getElementById('adFactoryView').classList.toggle('active', v==='adfactory');
+  document.getElementById('activityLogView').style.display = (v==='activitylog') ? 'block' : 'none';
   if (v === 'tasks') {
     document.getElementById('viewTitle').textContent = currentMyOnly ? 'Active Tasks' : 'All Tasks';
     renderTable();
@@ -1177,6 +1189,9 @@ function switchView(v) {
   } else if (v === 'adfactory') {
     document.getElementById('viewTitle').textContent = 'Ad Factory';
     renderAdFactory();
+  } else if (v === 'activitylog') {
+    document.getElementById('viewTitle').textContent = 'Activity Log';
+    renderActivityLog();
   }
   updateSubtitle();
 }
@@ -1462,7 +1477,7 @@ function saveTask() {
   };
   if (eid) {
     var idx = tasks.findIndex(function(t){return t.id===eid});
-    if (idx !== -1) Object.assign(tasks[idx], obj);
+    if (idx !== -1) { Object.assign(tasks[idx], obj); logActivity('Edited Task', eid + ' "' + obj.name + '"'); }
   } else {
     obj.id = generateCreativeId(obj.game, obj.type);
     obj.created = new Date().toISOString().slice(0,10);
@@ -1470,6 +1485,7 @@ function saveTask() {
     obj.d7roas = null; obj.spend = null; obj.cpi = null; obj.installs = null; obj.ctr = null; obj.cvr = null;
     obj.campaign = ''; obj.networks = []; obj.perfTag = ''; obj.comments = []; obj.creativeLink = ''; obj.roasByDay = {};
     tasks.push(obj);
+    logActivity('Created Task', obj.id + ' "' + obj.name + '" (' + obj.game + ')');
   }
   save();
   closeModal();
@@ -1757,6 +1773,7 @@ function ideaToTask(ideaId) {
   };
   tasks.push(newTask);
   ideas = ideas.filter(function(i){return i.id !== ideaId});
+  logActivity('Created Task from Idea', newTask.id + ' "' + newTask.name + '"');
   save(); populateFilters(); renderAll(); renderIdeas();
   showToast('Task '+newTask.id+' created — idea removed from vault');
 }
@@ -2245,6 +2262,9 @@ function openSidePanel(id) {
 function applyRoleRestrictions() {
   var admin = isCurrentAdmin();
   var editable = canEdit(); // admin or editor
+  // Activity Log nav — admin only
+  var alNav = document.getElementById('navActivityLog');
+  if (alNav) alNav.style.display = admin ? '' : 'none';
   // Description: admin & editor can edit, viewer read-only
   var descEl = document.getElementById('spDesc');
   descEl.contentEditable = editable ? 'true' : 'false';
@@ -2398,6 +2418,7 @@ function saveCampaign() {
 function saveSpField(field, value) {
   var t = tasks.find(function(x){return x.id===currentPanelId});
   if (!t) return;
+  logActivity('Changed ' + field, t.id + ' → ' + (typeof value === 'object' ? JSON.stringify(value) : value));
   t[field] = value;
   // Update header display
   if (field === 'game') document.getElementById('spGame').textContent = ' · ' + value;
@@ -2518,6 +2539,7 @@ function addComment() {
   if (!text) return;
   if (!t.comments) t.comments = [];
   t.comments.push({author:currentUser,text:text,time:new Date().toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})});
+  logActivity('Added Comment', t.id + ' — "' + (text.length > 50 ? text.slice(0,47)+'...' : text) + '"');
   inp.value = '';
   save(); renderComments(t);
 }
@@ -2590,6 +2612,7 @@ function changeStatus(id, newStatus) {
   var oldStatus = t.status;
   if (newStatus === 'Archive') { t.archived = true; }
   else { t.archived = false; t.status = newStatus; }
+  logActivity('Status Changed', t.id + ' "' + t.name + '" → ' + oldStatus + ' to ' + newStatus);
   // Celebrate when going Live!
   if (newStatus === 'Live' && oldStatus !== 'Live') {
     playAchievementSound();
@@ -2604,6 +2627,67 @@ function changeStatus(id, newStatus) {
   }
   save(); renderTable();
   if (_openDropdown) { _openDropdown.classList.remove('open'); _openDropdown = null; }
+}
+
+// ============ ACTIVITY LOG ============
+var ACTIVITY_KEY = 'fm_activity_log';
+var activityLog = JSON.parse(localStorage.getItem(ACTIVITY_KEY)) || [];
+
+function logActivity(action, details) {
+  if (!currentUser || currentUser === 'Guest') return;
+  var entry = {
+    time: new Date().toISOString(),
+    user: currentUser,
+    email: currentUserEmail || '',
+    action: action,
+    details: details
+  };
+  activityLog.unshift(entry); // newest first
+  if (activityLog.length > 500) activityLog = activityLog.slice(0, 500); // cap at 500
+  localStorage.setItem(ACTIVITY_KEY, JSON.stringify(activityLog));
+}
+
+function renderActivityLog() {
+  var container = document.getElementById('activityLogTable');
+  if (!container) return;
+  if (activityLog.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">No activity recorded yet</div>';
+    return;
+  }
+  var html = '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+  html += '<thead><tr style="border-bottom:1px solid var(--border)">';
+  html += '<th style="padding:8px 12px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase">Time</th>';
+  html += '<th style="padding:8px 12px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase">User</th>';
+  html += '<th style="padding:8px 12px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase">Action</th>';
+  html += '<th style="padding:8px 12px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase">Details</th>';
+  html += '</tr></thead><tbody>';
+  activityLog.forEach(function(entry) {
+    var d = new Date(entry.time);
+    var timeStr = d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}) + ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    var actionColor = '#f1f5f9';
+    if (entry.action.indexOf('Status') !== -1) actionColor = '#10b981';
+    else if (entry.action.indexOf('Created') !== -1 || entry.action.indexOf('Added') !== -1) actionColor = '#3b82f6';
+    else if (entry.action.indexOf('Deleted') !== -1 || entry.action.indexOf('Archived') !== -1) actionColor = '#ef4444';
+    else if (entry.action.indexOf('Edited') !== -1 || entry.action.indexOf('Changed') !== -1) actionColor = '#f59e0b';
+    else if (entry.action.indexOf('Login') !== -1) actionColor = '#a855f7';
+    html += '<tr style="border-bottom:1px solid var(--border)">';
+    html += '<td style="padding:8px 12px;color:var(--muted);white-space:nowrap">'+timeStr+'</td>';
+    html += '<td style="padding:8px 12px;color:#f1f5f9;font-weight:500">'+entry.user+'</td>';
+    html += '<td style="padding:8px 12px;color:'+actionColor+';font-weight:500">'+entry.action+'</td>';
+    html += '<td style="padding:8px 12px;color:var(--muted)">'+entry.details+'</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function clearActivityLog() {
+  if (!isCurrentAdmin()) { showToast('Only admin can clear log', true); return; }
+  if (!confirm('Clear entire activity log?')) return;
+  activityLog = [];
+  localStorage.setItem(ACTIVITY_KEY, JSON.stringify(activityLog));
+  renderActivityLog();
+  showToast('Activity log cleared');
 }
 
 // ============ LIVE SOUND ============

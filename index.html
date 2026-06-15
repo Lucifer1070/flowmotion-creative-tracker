@@ -16,7 +16,8 @@ body::after{content:'';position:fixed;bottom:-15%;left:-5%;width:500px;height:50
 /* Sidebar */
 .sidebar{width:220px;background:linear-gradient(180deg,#061525 0%,#071c32 50%,#061525 100%);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;position:relative;z-index:1;backdrop-filter:blur(12px)}
 .sidebar-header{padding:20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
-.sidebar-logo{width:36px;height:36px;background:linear-gradient(135deg,#06b6d4,#0284c7);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;color:#fff;box-shadow:0 0 12px rgba(6,182,212,.3)}
+.sidebar-logo{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 0 12px rgba(6,182,212,.3)}
+.sidebar-logo img{width:100%;height:100%;object-fit:cover;border-radius:8px}
 .sidebar-brand{display:flex;flex-direction:column}
 .sidebar-brand strong{font-size:14px;color:#f1f5f9}
 .sidebar-brand small{font-size:11px;color:var(--muted)}
@@ -238,6 +239,12 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
 .cal-day.range-start.range-end{border-radius:6px}
 .cal-hdr{font-size:10px;color:var(--muted);font-weight:600;padding:4px 0;text-transform:uppercase}
 @media(max-width:900px){.sidebar{width:60px}.sidebar-brand,.nav-label,.status-summary h4,.status-item span:not(.count){display:none}.nav-item{justify-content:center;padding:12px}.nav-item .badge{display:none}}
+/* Cherry blossom petals */
+.petal-container{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:hidden}
+.petal{position:absolute;opacity:0;will-change:transform,opacity}
+.petal svg{filter:drop-shadow(0 0 2px rgba(6,182,212,.2))}
+@keyframes petalFall{0%{opacity:0;transform:translateY(-20px) rotate(0deg) scale(.6)}8%{opacity:.7}70%{opacity:.5}100%{opacity:0;transform:translateY(calc(100vh + 30px)) rotate(360deg) scale(.4)}}
+@keyframes petalSway{0%,100%{margin-left:0}25%{margin-left:30px}75%{margin-left:-30px}}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -247,7 +254,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
 <!-- Sidebar -->
 <div class="sidebar">
   <div class="sidebar-header">
-    <div class="sidebar-logo">FME</div>
+    <div class="sidebar-logo"><img src="logo.png" alt="FME" onerror="this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,#06b6d4,#0284c7)';this.parentElement.innerHTML='FME';this.parentElement.style.fontWeight='bold';this.parentElement.style.fontSize='12px';this.parentElement.style.color='#fff'"></div>
     <div class="sidebar-brand"><strong>Creative Tracker</strong><small>Flowmotion Entertainment</small></div>
   </div>
   <div class="nav-section">
@@ -423,7 +430,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
 <!-- Identity Picker Overlay -->
 <div id="identityOverlay" style="display:none;position:fixed;inset:0;background:linear-gradient(160deg,rgba(4,13,26,.95),rgba(6,26,46,.92),rgba(10,37,64,.9));z-index:2000;align-items:center;justify-content:center">
   <div style="background:linear-gradient(160deg,#0a1e30,#0d2640);border:1px solid rgba(6,182,212,.2);border-radius:16px;padding:32px;max-width:380px;width:90%;text-align:center;box-shadow:0 0 40px rgba(6,182,212,.1),0 20px 60px rgba(0,0,0,.4)">
-    <div style="width:56px;height:56px;background:linear-gradient(135deg,#06b6d4,#0284c7);border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:18px;color:#fff;margin:0 auto 16px;box-shadow:0 0 20px rgba(6,182,212,.35)">FME</div>
+    <div style="width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 0 20px rgba(6,182,212,.35);overflow:hidden"><img src="logo.png" style="width:100%;height:100%;object-fit:cover;border-radius:12px" alt="FME" onerror="this.style.display='none';this.parentElement.style.background='linear-gradient(135deg,#06b6d4,#0284c7)';this.parentElement.innerHTML='FME';this.parentElement.style.fontWeight='bold';this.parentElement.style.fontSize='18px';this.parentElement.style.color='#fff'"></div>
     <h2 style="font-size:18px;color:#f1f5f9;margin-bottom:4px">FME Creative Tracker</h2>
     <p style="font-size:12px;color:var(--muted);margin-bottom:24px">Sign in with your Flowmotion email</p>
     <div id="googleSignInBtn" style="display:flex;justify-content:center;margin-bottom:16px"></div>
@@ -3121,6 +3128,67 @@ function renderAll() {
     document.querySelectorAll('#ideaGrid button').forEach(function(b) { b.style.display = 'none'; });
   }
 }
+
+// ============ CHERRY BLOSSOM PETALS ============
+(function() {
+  var petalContainer = document.createElement('div');
+  petalContainer.className = 'petal-container';
+  document.body.appendChild(petalContainer);
+
+  var petalColors = [
+    {fill:'rgba(6,182,212,0.4)',stroke:'rgba(6,182,212,0.6)'},
+    {fill:'rgba(14,165,233,0.35)',stroke:'rgba(14,165,233,0.55)'},
+    {fill:'rgba(2,132,199,0.3)',stroke:'rgba(2,132,199,0.5)'},
+    {fill:'rgba(56,189,248,0.3)',stroke:'rgba(56,189,248,0.5)'},
+    {fill:'rgba(125,211,252,0.25)',stroke:'rgba(125,211,252,0.45)'}
+  ];
+
+  function createPetalSVG(color) {
+    return '<svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="M10 0 C13 4, 18 6, 18 10 C18 14, 13 18, 10 20 C7 18, 2 14, 2 10 C2 6, 7 4, 10 0Z" ' +
+      'fill="'+color.fill+'" stroke="'+color.stroke+'" stroke-width="0.5"/>' +
+      '</svg>';
+  }
+
+  function spawnPetal() {
+    var petal = document.createElement('div');
+    petal.className = 'petal';
+    var color = petalColors[Math.floor(Math.random()*petalColors.length)];
+    petal.innerHTML = createPetalSVG(color);
+
+    var startX = Math.random() * window.innerWidth;
+    var size = 10 + Math.random() * 14;
+    var duration = 12 + Math.random() * 18;
+    var swayDuration = 3 + Math.random() * 4;
+    var delay = Math.random() * 2;
+
+    petal.style.left = startX + 'px';
+    petal.style.top = '-20px';
+    petal.style.width = size + 'px';
+    petal.style.height = size + 'px';
+    petal.style.animation = 'petalFall '+duration+'s ease-in '+delay+'s forwards, petalSway '+swayDuration+'s ease-in-out '+delay+'s infinite';
+
+    petalContainer.appendChild(petal);
+
+    setTimeout(function() {
+      if (petal.parentNode) petal.parentNode.removeChild(petal);
+    }, (duration + delay) * 1000 + 500);
+  }
+
+  // Spawn petals gently — 1 every 2-4 seconds for a subtle effect
+  function petalLoop() {
+    spawnPetal();
+    setTimeout(petalLoop, 2000 + Math.random() * 3000);
+  }
+
+  // Start after a short delay
+  setTimeout(petalLoop, 1500);
+
+  // Spawn a small initial burst (3-4 petals)
+  setTimeout(function() {
+    for (var i=0; i<4; i++) setTimeout(spawnPetal, i*400);
+  }, 800);
+})();
 </script>
 </body>
 </html>

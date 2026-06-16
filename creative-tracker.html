@@ -3390,36 +3390,39 @@ function renderGameCards() {
     function Petal(init) {
       var src = cleanImages[Math.floor(Math.random() * cleanImages.length)];
       this.canvas = src.canvas;
-      this.ar = src.w / src.h; // aspect ratio
+      this.ar = src.w / src.h;
 
-      // Size tiers
+      // Small delicate sizes like reference
       var t = Math.random();
-      if (t < 0.35) { this.w = 30 + Math.random() * 15; this.depth = 0.5; }
-      else if (t < 0.7) { this.w = 45 + Math.random() * 20; this.depth = 0.75; }
-      else { this.w = 60 + Math.random() * 25; this.depth = 1; }
+      if (t < 0.4) { this.w = 18 + Math.random() * 10; this.depth = 0.6; }
+      else if (t < 0.75) { this.w = 28 + Math.random() * 12; this.depth = 0.8; }
+      else { this.w = 38 + Math.random() * 14; this.depth = 1; }
       this.h = this.w / this.ar;
 
-      // Position — spread across full screen on init
+      // Position
       this.x = Math.random() * W;
-      this.y = init ? Math.random() * H : -(this.h + Math.random() * 200);
+      this.y = init ? Math.random() * H : -(this.h + Math.random() * 150);
 
-      // Movement
-      this.vy = (0.15 + Math.random() * 0.4) * this.depth;
-      this.vx = (-0.15 + Math.random() * 0.3) * this.depth;
-      this.swA = (0.2 + Math.random() * 0.8) * this.depth;
-      this.swF = 0.004 + Math.random() * 0.008;
+      // Natural fall speed — much faster, like real petals
+      this.vy = (1.2 + Math.random() * 1.8) * this.depth;
+      // Gentle sideways drift (wind)
+      this.vx = (-0.3 + Math.random() * 0.6) * this.depth;
+      // Sway — gentle sinusoidal side movement
+      this.swA = (0.5 + Math.random() * 1.2) * this.depth;
+      this.swF = 0.015 + Math.random() * 0.02;
       this.swO = Math.random() * Math.PI * 2;
 
-      // Rotation
+      // 3D tumbling rotation
       this.a = Math.random() * Math.PI * 2;
-      this.spin = (Math.random() - 0.5) * 0.01;
+      this.spin = (Math.random() - 0.5) * 0.04; // faster spin
       this.tilt = Math.random() * Math.PI * 2;
-      this.tiltS = 0.004 + Math.random() * 0.01;
+      this.tiltS = 0.02 + Math.random() * 0.03; // faster 3D tumble
+      this.flipAngle = Math.random() * Math.PI * 2;
+      this.flipSpeed = 0.01 + Math.random() * 0.025;
 
       // Opacity
-      this.bOp = 0.55 + Math.random() * 0.35;
+      this.bOp = 0.6 + Math.random() * 0.35;
       this.op = this.bOp;
-      this.oP = Math.random() * Math.PI * 2;
       this.life = 0;
     }
 
@@ -3427,8 +3430,8 @@ function renderGameCards() {
       Petal.call(this, false);
     };
 
-    // 18 petals — natural density
-    for (var i = 0; i < 18; i++) petals.push(new Petal(true));
+    // 8 petals — sparse like reference video
+    for (var i = 0; i < 8; i++) petals.push(new Petal(true));
 
     (function animate() {
       ctx.clearRect(0, 0, W, H);
@@ -3437,23 +3440,26 @@ function renderGameCards() {
         var p = petals[i];
         p.life++;
 
-        // Sway + fall
-        p.x += p.vx + Math.sin(p.life * p.swF + p.swO) * p.swA;
+        // Natural falling with sway
+        var sway = Math.sin(p.life * p.swF + p.swO) * p.swA;
+        p.x += p.vx + sway;
         p.y += p.vy;
+
+        // Tumbling rotation
         p.a += p.spin;
         p.tilt += p.tiltS;
+        p.flipAngle += p.flipSpeed;
 
-        // Opacity pulse
-        p.oP += 0.007;
-        p.op = p.bOp + Math.sin(p.oP) * 0.05;
+        // Slight opacity variation
+        p.op = p.bOp + Math.sin(p.life * 0.02) * 0.08;
 
         // Mouse scatter
         var dx = p.x - mouse.x, dy = p.y - mouse.y;
         var d = Math.sqrt(dx*dx + dy*dy);
         if (d < 110 && d > 0) {
-          p.x += (dx/d) * 1;
-          p.y += (dy/d) * 0.5;
-          p.spin += (Math.random()-0.5) * 0.003;
+          p.x += (dx/d) * 1.5;
+          p.y += (dy/d) * 0.8;
+          p.spin += (Math.random()-0.5) * 0.01;
         }
 
         // Off screen → respawn from top
@@ -3461,12 +3467,15 @@ function renderGameCards() {
           p.respawn();
         }
 
-        // Draw — normal composite, black already removed
+        // Draw with 3D tumble effect
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.a);
-        ctx.scale(0.4 + Math.abs(Math.cos(p.tilt)) * 0.6, 1);
-        ctx.globalAlpha = p.op;
+        // 3D flip — scaleX oscillates for tumbling look, scaleY for depth
+        var scX = Math.cos(p.tilt);
+        var scY = 0.6 + Math.abs(Math.cos(p.flipAngle)) * 0.4;
+        ctx.scale(scX, scY);
+        ctx.globalAlpha = Math.max(0.15, p.op * (0.5 + Math.abs(scX) * 0.5));
         ctx.drawImage(p.canvas, -p.w/2, -p.h/2, p.w, p.h);
         ctx.restore();
       }

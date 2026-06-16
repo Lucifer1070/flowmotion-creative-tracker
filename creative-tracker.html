@@ -112,11 +112,11 @@ tbody tr:hover{background:rgba(168,85,247,.06);box-shadow:inset 0 0 30px rgba(16
 .metric-negative{color:var(--red)}
 .metric-neutral{color:var(--muted)}
 /* Casino-style task rows */
-.task-grid-header{display:grid;grid-template-columns:70px 200px 1.5fr 100px 100px 110px 130px 90px 80px;gap:0;padding:12px 20px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid rgba(168,85,247,.15);cursor:pointer;user-select:none}
+.task-grid-header{display:grid;grid-template-columns:80px 180px 1.2fr 90px 80px 90px 90px 100px 90px 110px 70px 70px 70px;gap:0;padding:12px 20px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid rgba(168,85,247,.15);cursor:pointer;user-select:none}
 .task-grid-header span:hover{color:var(--accent)}
 .task-grid-header span.sorted::after{content:' \2191';color:var(--accent)}
 .task-grid-header span.sorted.desc::after{content:' \2193'}
-.t-row{display:grid;grid-template-columns:70px 200px 1.5fr 100px 100px 110px 130px 90px 80px;gap:0;align-items:center;padding:12px 20px;margin:0 12px 6px;border-radius:14px;background:rgba(168,85,247,.03);border:1px solid rgba(168,85,247,.06);transition:all .3s;cursor:pointer;position:relative}
+.t-row{display:grid;grid-template-columns:80px 180px 1.2fr 90px 80px 90px 90px 100px 90px 110px 70px 70px 70px;gap:0;align-items:center;padding:12px 20px;margin:0 12px 6px;border-radius:14px;background:rgba(168,85,247,.03);border:1px solid rgba(168,85,247,.06);transition:all .3s;cursor:pointer;position:relative}
 .t-row:hover{background:rgba(168,85,247,.08);border-color:rgba(168,85,247,.2);transform:translateX(2px)}
 .t-row::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;border-radius:0 3px 3px 0;background:var(--accent);transition:all .3s;opacity:0}
 .t-row:hover::before{height:60%;opacity:1}
@@ -430,12 +430,16 @@ tbody tr:hover{animation:rowGlowPulse 2s ease-in-out infinite}
         <span data-sort="id">ID</span>
         <span data-sort="game">Game</span>
         <span data-sort="name">Creative Name</span>
+        <span data-sort="created" style="text-align:center">Created</span>
+        <span data-sort="dueDate" style="text-align:center">Due Date</span>
         <span data-sort="type" style="text-align:center">Type</span>
         <span data-sort="status" style="text-align:center">Status</span>
         <span style="text-align:center">Networks</span>
+        <span data-sort="priority" style="text-align:center">Priority</span>
         <span data-sort="assigned" style="text-align:center">Assigned</span>
-        <span style="text-align:center">Priority</span>
         <span data-sort="d7roas" style="text-align:center">D7 ROAS</span>
+        <span data-sort="spend" style="text-align:center">Spend</span>
+        <span data-sort="cpi" style="text-align:center">CPI</span>
       </div>
       <div id="taskTableBody"></div>
     </div>
@@ -1473,16 +1477,29 @@ function renderTable() {
     var roasStr = t.d7roas != null ? t.d7roas.toFixed(1) + 'x' : '—';
     var roasColor = t.d7roas > 0 ? 'var(--green)' : (t.d7roas < 0 ? 'var(--red)' : 'var(--muted)');
 
+    // Created & Due Date formatting
+    var createdStr = t.created ? new Date(t.created).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) : '—';
+    var dueStr = t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) : '—';
+    var isOverdue = t.dueDate && t.status!=='Live' && t.status!=='Stopped' && new Date(t.dueDate)<new Date();
+    var dueColor = isOverdue ? 'var(--red)' : 'var(--muted)';
+    // Spend & CPI
+    var spendStr = t.spend != null ? '$' + Number(t.spend).toLocaleString() : '—';
+    var cpiStr = t.cpi != null ? '$' + Number(t.cpi).toFixed(2) : '—';
+
     html += '<div class="t-row ' + rowClass + '" ondblclick="editTask(\'' + t.id + '\')">';
-    html += '<div class="row-id" onclick="editTask(\'' + t.id + '\')"><i class="fa-solid fa-hashtag" style="font-size:8px;opacity:.5"></i>' + t.id.split('-').pop() + '</div>';
-    html += '<div class="row-game"><div class="row-game-icon" style="background:' + gc + '"><img src="' + (gameIconMap[t.game]||'') + '" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'"></div><div><div class="row-game-name">' + t.game + '</div><div class="row-game-sub">' + t.id + '</div></div></div>';
+    html += '<div class="row-id" onclick="editTask(\'' + t.id + '\')" style="color:var(--accent);font-weight:600;font-size:12px">' + t.id + '</div>';
+    html += '<div class="row-game"><div class="row-game-icon" style="background:' + gc + '"><img src="' + (gameIconMap[t.game]||'') + '" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\'"></div><div><div class="row-game-name">' + t.game + '</div></div></div>';
     html += '<div class="row-creative" onclick="openSidePanel(\'' + t.id + '\')" style="cursor:pointer">' + t.name + '</div>';
+    html += '<div style="text-align:center;font-size:12px;color:var(--muted)">' + createdStr + '</div>';
+    html += '<div style="text-align:center;font-size:12px;color:' + dueColor + '">' + dueStr + '</div>';
     html += '<div class="t-center"><span class="row-type ' + typeClass + '"><i class="fa-solid ' + typeIcon + '" style="font-size:9px"></i> ' + typeLabel + '</span></div>';
     html += '<div class="t-center status-toggle" onclick="event.stopPropagation();toggleStatusDropdown(this,\'' + t.id + '\')">' + statusHtml + '<div class="status-dropdown" id="sd-' + t.id + '"></div></div>';
     html += '<div style="display:flex;gap:4px;justify-content:center">' + netHtml + '</div>';
-    html += '<div class="t-center assign-cell" onclick="event.stopPropagation();toggleAssignPopup(this,\'' + t.id + '\')">' + assignHtml + '<div class="assign-popup" id="ap-' + t.id + '"></div></div>';
     html += '<div class="t-center">' + prioHtml + '</div>';
+    html += '<div class="t-center assign-cell" onclick="event.stopPropagation();toggleAssignPopup(this,\'' + t.id + '\')">' + assignHtml + '<div class="assign-popup" id="ap-' + t.id + '"></div></div>';
     html += '<div style="text-align:center;font-size:12px;color:' + roasColor + '">' + roasStr + '</div>';
+    html += '<div style="text-align:center;font-size:12px;color:var(--muted)">' + spendStr + '</div>';
+    html += '<div style="text-align:center;font-size:12px;color:var(--muted)">' + cpiStr + '</div>';
     html += '</div>';
   });
   container.innerHTML = html;

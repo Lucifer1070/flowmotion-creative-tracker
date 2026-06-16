@@ -112,11 +112,11 @@ tbody tr:hover{background:rgba(168,85,247,.06);box-shadow:inset 0 0 30px rgba(16
 .metric-negative{color:var(--red)}
 .metric-neutral{color:var(--muted)}
 /* Casino-style task rows */
-.task-grid-header{display:grid;grid-template-columns:110px 55px 1fr 90px 90px 90px 90px 100px 90px 100px 80px 80px 70px;gap:0;padding:12px 16px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid rgba(168,85,247,.15);cursor:pointer;user-select:none;min-width:1200px}
+.task-grid-header{display:grid;grid-template-columns:110px 50px 2.2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 0.8fr 0.8fr 0.7fr;gap:0;padding:12px 16px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid rgba(168,85,247,.15);cursor:pointer;user-select:none}
 .task-grid-header span:hover{color:var(--accent)}
 .task-grid-header span.sorted::after{content:' \2191';color:var(--accent)}
 .task-grid-header span.sorted.desc::after{content:' \2193'}
-.t-row{display:grid;grid-template-columns:110px 55px 1fr 90px 90px 90px 90px 100px 90px 100px 80px 80px 70px;gap:0;align-items:center;padding:10px 16px;margin:0 0 4px;border-radius:8px;background:rgba(168,85,247,.03);border:1px solid rgba(168,85,247,.06);transition:all .3s;cursor:pointer;position:relative;min-width:1200px}
+.t-row{display:grid;grid-template-columns:110px 50px 2.2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 0.8fr 0.8fr 0.7fr;gap:0;align-items:center;padding:10px 16px;margin:0 0 4px;border-radius:8px;background:rgba(168,85,247,.03);border:1px solid rgba(168,85,247,.06);transition:all .3s;cursor:pointer;position:relative}
 .t-row:hover{background:rgba(168,85,247,.08);border-color:rgba(168,85,247,.2);transform:translateX(2px)}
 .t-row::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;border-radius:0 3px 3px 0;background:var(--accent);transition:all .3s;opacity:0}
 .t-row:hover::before{height:60%;opacity:1}

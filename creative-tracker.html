@@ -112,17 +112,21 @@ tbody tr:hover{background:rgba(168,85,247,.06);box-shadow:inset 0 0 30px rgba(16
 .metric-negative{color:var(--red)}
 .metric-neutral{color:var(--muted)}
 /* Casino-style task rows */
-.task-grid-header{display:grid;grid-template-columns:80px 180px 1.2fr 90px 80px 90px 90px 100px 90px 110px 70px 70px 70px;gap:0;padding:12px 20px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid rgba(168,85,247,.15);cursor:pointer;user-select:none}
+.task-grid-header{display:grid;grid-template-columns:110px 140px 1.5fr 90px 90px 90px 80px 100px 80px 100px 80px 70px 70px;gap:0;padding:12px 16px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;border-bottom:1px solid rgba(168,85,247,.15);cursor:pointer;user-select:none;min-width:1200px}
 .task-grid-header span:hover{color:var(--accent)}
 .task-grid-header span.sorted::after{content:' \2191';color:var(--accent)}
 .task-grid-header span.sorted.desc::after{content:' \2193'}
-.t-row{display:grid;grid-template-columns:80px 180px 1.2fr 90px 80px 90px 90px 100px 90px 110px 70px 70px 70px;gap:0;align-items:center;padding:12px 20px;margin:0 12px 6px;border-radius:14px;background:rgba(168,85,247,.03);border:1px solid rgba(168,85,247,.06);transition:all .3s;cursor:pointer;position:relative}
+.t-row{display:grid;grid-template-columns:110px 140px 1.5fr 90px 90px 90px 80px 100px 80px 100px 80px 70px 70px;gap:0;align-items:center;padding:10px 16px;margin:0 0 4px;border-radius:8px;background:rgba(168,85,247,.03);border:1px solid rgba(168,85,247,.06);transition:all .3s;cursor:pointer;position:relative;min-width:1200px}
 .t-row:hover{background:rgba(168,85,247,.08);border-color:rgba(168,85,247,.2);transform:translateX(2px)}
 .t-row::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:0;border-radius:0 3px 3px 0;background:var(--accent);transition:all .3s;opacity:0}
 .t-row:hover::before{height:60%;opacity:1}
+.t-row.row-ready::before{display:none}
 .t-row.row-live{background:linear-gradient(90deg,rgba(168,85,247,.06),rgba(168,85,247,.02));border-color:rgba(168,85,247,.15)}
-.t-row.row-ready{animation:none !important;background:rgba(16,185,129,.03);border-color:rgba(16,185,129,.08)}
-.t-row.row-ready:hover{background:rgba(16,185,129,.08)}
+.t-row.row-ready{background:rgba(16,185,129,.03);border-color:rgba(16,185,129,.1);animation:readyPulse 3s ease-in-out infinite;position:relative;overflow:hidden}
+.t-row.row-ready::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(16,185,129,.06),rgba(16,185,129,.12),rgba(16,185,129,.06),transparent);animation:readySweep 4s ease-in-out infinite;pointer-events:none;border-radius:inherit}
+.t-row.row-ready:hover{background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.2)}
+@keyframes readyPulse{0%,100%{border-color:rgba(16,185,129,.08);box-shadow:0 0 0 0 rgba(16,185,129,0)}50%{border-color:rgba(16,185,129,.2);box-shadow:0 0 12px 0 rgba(16,185,129,.08)}}
+@keyframes readySweep{0%{left:-60%}50%{left:100%}100%{left:100%}}
 .row-id{font-size:11px;font-weight:700;color:var(--accent3,#c084fc)}
 .row-game{display:flex;align-items:center;gap:10px}
 .row-game-icon{width:36px;height:36px;border-radius:10px;overflow:hidden;flex-shrink:0;box-shadow:0 4px 12px rgba(0,0,0,.3);border:1.5px solid rgba(168,85,247,.15)}
@@ -320,6 +324,8 @@ tbody tr:hover{animation:rowGlowPulse 2s ease-in-out infinite}
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+
+<canvas class="particle-canvas" id="particleCanvas"></canvas>
 
 <!-- Sidebar -->
 <div class="sidebar">
@@ -3315,10 +3321,8 @@ function renderGameCards() {
 
 // ============ PURPLE PARTICLES (from prototype) ============
 (function() {
-  var canvas = document.createElement('canvas');
-  canvas.className = 'particle-canvas';
-  canvas.id = 'particleCanvas';
-  document.body.insertBefore(canvas, document.body.firstChild);
+  var canvas = document.getElementById('particleCanvas');
+  if (!canvas) return;
   var ctx = canvas.getContext('2d');
   var particles = [];
   var mouse = {x: -1000, y: -1000};
@@ -3332,16 +3336,16 @@ function renderGameCards() {
   Particle.prototype.reset = function() {
     this.x = Math.random() * W;
     this.y = Math.random() * H;
-    this.size = 1 + Math.random() * 2;
-    this.speedX = (Math.random() - 0.5) * 0.25;
-    this.speedY = (Math.random() - 0.5) * 0.25;
-    this.opacity = 0.1 + Math.random() * 0.35;
+    this.size = 1.5 + Math.random() * 2.5;
+    this.speedX = (Math.random() - 0.5) * 0.3;
+    this.speedY = (Math.random() - 0.5) * 0.3;
+    this.opacity = 0.15 + Math.random() * 0.45;
     this.pulse = Math.random() * Math.PI * 2;
     this.pulseSpeed = 0.01 + Math.random() * 0.02;
     var colors = [[168,85,247],[124,58,237],[192,132,252],[236,72,153],[139,92,246]];
     this.color = colors[Math.floor(Math.random()*colors.length)];
   };
-  for (var i = 0; i < 50; i++) particles.push(new Particle());
+  for (var i = 0; i < 65; i++) particles.push(new Particle());
 
   function animate() {
     ctx.clearRect(0, 0, W, H);
@@ -3367,14 +3371,14 @@ function renderGameCards() {
       for (var j = i+1; j < particles.length; j++) {
         var dx = p.x-particles[j].x, dy = p.y-particles[j].y;
         var d = Math.sqrt(dx*dx+dy*dy);
-        if (d < 110) {
-          ctx.beginPath(); ctx.strokeStyle = 'rgba(168,85,247,'+(1-d/110)*0.06+')';
-          ctx.lineWidth = 0.4; ctx.moveTo(p.x,p.y); ctx.lineTo(particles[j].x,particles[j].y); ctx.stroke();
+        if (d < 130) {
+          ctx.beginPath(); ctx.strokeStyle = 'rgba(168,85,247,'+(1-d/130)*0.1+')';
+          ctx.lineWidth = 0.5; ctx.moveTo(p.x,p.y); ctx.lineTo(particles[j].x,particles[j].y); ctx.stroke();
         }
       }
-      if (mD < 140) {
-        ctx.beginPath(); ctx.strokeStyle = 'rgba(168,85,247,'+(1-mD/140)*0.12+')';
-        ctx.lineWidth = 0.6; ctx.moveTo(p.x,p.y); ctx.lineTo(mouse.x,mouse.y); ctx.stroke();
+      if (mD < 160) {
+        ctx.beginPath(); ctx.strokeStyle = 'rgba(168,85,247,'+(1-mD/160)*0.18+')';
+        ctx.lineWidth = 0.7; ctx.moveTo(p.x,p.y); ctx.lineTo(mouse.x,mouse.y); ctx.stroke();
       }
     }
     requestAnimationFrame(animate);

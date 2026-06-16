@@ -359,7 +359,7 @@ tbody tr:hover{animation:rowGlowPulse 2s ease-in-out infinite}
 <div class="main">
   <!-- Top Bar -->
   <div class="topbar">
-    <div class="topbar-left"><h2 id="viewTitle"></h2><p id="viewSubtitle" style="display:none"></p></div>
+    <div class="topbar-left" style="display:none"><h2 id="viewTitle"></h2><p id="viewSubtitle"></p></div>
     <div class="topbar-right">
       <div id="syncBadge" style="font-size:11px;padding:6px 14px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);border-radius:20px;display:flex;align-items:center;gap:4px;white-space:nowrap;color:#c084fc"></div>
       <div id="musicToggle" onclick="toggleMusic()" style="font-size:14px;padding:6px 14px;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.2);border-radius:20px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;user-select:none;color:#c084fc" title="Toggle ambient music"><i class="fa-solid fa-music" id="musicIcon" style="font-size:12px"></i><span style="font-size:11px" id="musicLabel">Music</span></div>
@@ -376,29 +376,20 @@ tbody tr:hover{animation:rowGlowPulse 2s ease-in-out infinite}
     </div>
   </div>
 
-  <!-- Hero Banner -->
-  <div id="heroBanner" class="hero-banner" style="margin:8px 24px;border-radius:16px;overflow:visible;position:relative;min-height:100px;background:linear-gradient(135deg,#1a0e35 0%,#2d1660 40%,#3b1a7a 70%,#1a0e35 100%);border:1px solid rgba(168,85,247,.2);display:none;align-items:center">
+  <!-- Hero Banner with Game Cards -->
+  <div id="heroBanner" class="hero-banner" style="margin:8px 24px;border-radius:16px;overflow:visible;position:relative;background:linear-gradient(135deg,#1a0e35 0%,#2d1660 40%,#3b1a7a 70%,#1a0e35 100%);border:1px solid rgba(168,85,247,.2);display:none;flex-direction:column">
     <div style="position:absolute;inset:0;border-radius:16px;background:linear-gradient(90deg,rgba(12,6,24,.85) 0%,rgba(12,6,24,.4) 50%,rgba(12,6,24,.1) 100%);z-index:1"></div>
-    <div style="position:relative;z-index:2;padding:16px 28px;flex:1">
-      <div style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:linear-gradient(135deg,rgba(168,85,247,.2),rgba(236,72,153,.15));border:1px solid rgba(168,85,247,.3);border-radius:20px;font-size:9px;font-weight:600;color:#c084fc;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">&#128640; Command Center</div>
-      <div style="font-size:22px;font-weight:800;line-height:1.2"><span style="background:linear-gradient(135deg,#c084fc,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">FME Creative Powerhouse</span></div>
-      <div style="font-size:11px;color:#7c6f9e;margin-top:4px;max-width:380px;line-height:1.4">Your central hub for managing all ad creatives, tracking performance, and shipping winning campaigns across every game.</div>
+    <div style="position:relative;z-index:2;padding:14px 24px 0;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:linear-gradient(135deg,rgba(168,85,247,.2),rgba(236,72,153,.15));border:1px solid rgba(168,85,247,.3);border-radius:20px;font-size:9px;font-weight:600;color:#c084fc;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">&#128640; Command Center</div>
+        <div style="font-size:20px;font-weight:800;line-height:1.2"><span style="background:linear-gradient(135deg,#c084fc,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">FME Creative Powerhouse</span></div>
+        <div style="font-size:10px;color:#7c6f9e;margin-top:3px;max-width:350px;line-height:1.4">Your central hub for managing all ad creatives, tracking performance, and shipping winning campaigns across every game.</div>
+      </div>
     </div>
-    <div style="position:absolute;right:30px;top:50%;transform:translateY(-50%);z-index:2;display:flex;gap:12px">
-      <div style="width:60px;height:60px;border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5),0 0 20px rgba(168,85,247,.2);border:2px solid rgba(168,85,247,.25);transform:rotate(-8deg) translateY(-5px)"><img src="cooking-crush.png" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.background='linear-gradient(135deg,#f59e0b,#d97706)';this.outerHTML='<div style=&quot;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px&quot;>&#127860;</div>'"></div>
-      <div style="width:60px;height:60px;border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5),0 0 20px rgba(168,85,247,.2);border:2px solid rgba(168,85,247,.25);transform:translateY(6px)"><img src="cooking-chaos.png" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.background='linear-gradient(135deg,#ef4444,#dc2626)';this.outerHTML='<div style=&quot;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px&quot;>&#128293;</div>'"></div>
-      <div style="width:60px;height:60px;border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5),0 0 20px rgba(168,85,247,.2);border:2px solid rgba(168,85,247,.25);transform:rotate(8deg) translateY(-5px)"><img src="gym-mania.png" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.style.background='linear-gradient(135deg,#ec4899,#db2777)';this.outerHTML='<div style=&quot;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:24px&quot;>&#127947;</div>'"></div>
-    </div>
+    <div style="position:relative;z-index:2;padding:10px 24px 14px;display:flex;align-items:center;gap:6px;overflow-x:auto;scrollbar-width:none" id="heroGameCards"></div>
   </div>
-
-  <!-- Game Cards Row -->
-  <div id="gameCardsSection" class="game-cards-section" style="padding:0 24px;margin-bottom:14px;display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <div style="font-size:14px;font-weight:700;color:var(--text)">&#127918; Our Games</div>
-      <div style="font-size:11px;color:#c084fc;cursor:pointer">View All &#8594;</div>
-    </div>
-    <div id="gameCardsRow" style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none"></div>
-  </div>
+  <!-- Hidden container for backward compat -->
+  <div id="gameCardsSection" style="display:none"><div id="gameCardsRow"></div></div>
 
   <!-- Tasks View -->
   <div class="tasks-view active" id="tasksView">
@@ -3320,6 +3311,22 @@ function renderGameCards() {
       '<div class="game-card-info"><div class="game-card-name">' + game + '</div><div class="game-card-count">' + count + ' creative' + (count!==1?'s':'') + '</div></div></div>';
   });
   row.innerHTML = html;
+  // Also render inline hero game cards
+  var heroRow = document.getElementById('heroGameCards');
+  if (heroRow) {
+    var heroHtml = '';
+    Object.keys(gameIcons).forEach(function(game) {
+      var info = gameIcons[game];
+      var count = gameCounts[game] || 0;
+      if (count === 0) return;
+      heroHtml += '<div onclick="document.getElementById(\'gameFilter\').value=\'' + game + '\';renderAll()" style="flex-shrink:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:transform .2s" onmouseover="this.style.transform=\'translateY(-3px)\'" onmouseout="this.style.transform=\'none\'">' +
+        '<div style="width:70px;height:70px;border-radius:14px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,.4),0 0 16px rgba(168,85,247,.15);border:2px solid rgba(168,85,247,.2)">' +
+        '<img src="' + info.icon + '" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display=\'none\';this.parentElement.style.background=\'' + info.solidBg.replace(/'/g,'') + '\';this.parentElement.innerHTML+=\'<div style=padding:0;display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:28px>' + info.emoji + '</div>\'">' +
+        '</div>' +
+        '<div style="text-align:center"><div style="font-size:10px;font-weight:700;color:var(--text);white-space:nowrap">' + game + '</div><div style="font-size:8px;color:var(--muted)">' + count + ' creative' + (count!==1?'s':'') + '</div></div></div>';
+    });
+    heroRow.innerHTML = heroHtml;
+  }
 }
 
 // ============ PURPLE PARTICLES (from prototype) ============

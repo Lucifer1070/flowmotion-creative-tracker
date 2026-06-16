@@ -3361,88 +3361,84 @@ function renderGameCards() {
 
   function Petal(init) { this.reset(init); }
   Petal.prototype.reset = function(init) {
-    // Pick random loaded image
     this.img = petalImages[Math.floor(Math.random() * petalImages.length)];
-    // 3 size tiers for depth
-    var tier = Math.random();
-    if (tier < 0.3) { this.size = 20 + Math.random() * 15; this.layer = 0.5; }
-    else if (tier < 0.7) { this.size = 35 + Math.random() * 20; this.layer = 0.75; }
-    else { this.size = 50 + Math.random() * 30; this.layer = 1.0; }
+    // Get real aspect ratio from image (wider than tall ~2:1)
+    this.aspect = this.img.naturalWidth / (this.img.naturalHeight || 1);
+    if (this.aspect < 0.5 || this.aspect > 4) this.aspect = 1.8; // fallback
 
-    this.x = Math.random() * (W + 200) - 100;
-    this.y = init ? (Math.random() * (H + 200) - 100) : -(this.size + Math.random() * 300);
-    // Fall + drift
-    this.speedY = (0.15 + Math.random() * 0.4) * this.layer;
-    this.speedX = (-0.2 + Math.random() * 0.4) * this.layer;
-    // Wind sway
-    this.swayAmp = (0.3 + Math.random() * 1.0) * this.layer;
-    this.swayFreq = 0.005 + Math.random() * 0.01;
-    this.swayOff = Math.random() * Math.PI * 2;
+    // Width-based sizing (height derived from aspect)
+    var tier = Math.random();
+    if (tier < 0.35) { this.w = 25 + Math.random() * 15; this.layer = 0.5; }
+    else if (tier < 0.75) { this.w = 40 + Math.random() * 20; this.layer = 0.75; }
+    else { this.w = 55 + Math.random() * 25; this.layer = 1.0; }
+    this.h = this.w / this.aspect;
+
+    this.x = Math.random() * W;
+    this.y = init ? (Math.random() * H) : -(this.h + Math.random() * 250);
+    // Slow natural fall
+    this.vy = (0.12 + Math.random() * 0.35) * this.layer;
+    this.vx = (-0.15 + Math.random() * 0.3) * this.layer;
+    // Sway
+    this.swayA = (0.2 + Math.random() * 0.7) * this.layer;
+    this.swayF = 0.004 + Math.random() * 0.008;
+    this.swayO = Math.random() * Math.PI * 2;
     // Rotation
     this.angle = Math.random() * Math.PI * 2;
-    this.spin = (Math.random() - 0.5) * 0.015;
-    // 3D tumble (scale X to simulate flip)
+    this.spin = (Math.random() - 0.5) * 0.012;
+    // 3D flip
     this.tilt = Math.random() * Math.PI * 2;
-    this.tiltSpd = 0.006 + Math.random() * 0.014;
+    this.tiltSpd = 0.005 + Math.random() * 0.01;
     // Opacity
-    this.baseOp = (0.4 + Math.random() * 0.4) * (this.layer * 0.6 + 0.4);
+    this.baseOp = 0.5 + Math.random() * 0.4;
     this.op = this.baseOp;
-    this.opPhase = Math.random() * Math.PI * 2;
+    this.opP = Math.random() * Math.PI * 2;
     this.life = 0;
   };
 
   function startPetals() {
-    // Only use successfully loaded images
     var loaded = petalImages.filter(function(img) { return img.naturalWidth > 0; });
     if (loaded.length === 0) return;
     petalImages = loaded;
 
-    // Create petals
-    for (var i = 0; i < 45; i++) petals.push(new Petal(true));
+    // 20 petals — natural, not crowded
+    for (var i = 0; i < 20; i++) petals.push(new Petal(true));
 
     function animate() {
       ctx.clearRect(0, 0, W, H);
-      // Use 'screen' blend to make black bg transparent
       ctx.globalCompositeOperation = 'screen';
 
       for (var i = 0; i < petals.length; i++) {
         var p = petals[i];
         p.life++;
-        // Sway + fall
-        p.x += p.speedX + Math.sin(p.life * p.swayFreq + p.swayOff) * p.swayAmp;
-        p.y += p.speedY;
-        // Spin and tumble
+        p.x += p.vx + Math.sin(p.life * p.swayF + p.swayO) * p.swayA;
+        p.y += p.vy;
         p.angle += p.spin;
         p.tilt += p.tiltSpd;
-        // Opacity breathe
-        p.opPhase += 0.01;
-        p.op = p.baseOp + Math.sin(p.opPhase) * 0.08;
-        if (p.op < 0.15) p.op = 0.15;
+        p.opP += 0.008;
+        p.op = p.baseOp + Math.sin(p.opP) * 0.06;
 
-        // Mouse — petals scatter gently
+        // Mouse scatter
         var dx = p.x - mouse.x, dy = p.y - mouse.y;
         var d = Math.sqrt(dx * dx + dy * dy);
-        if (d < 130) {
-          var f = (1 - d / 130) * 1.5;
-          p.x += (dx / d) * f;
-          p.y += (dy / d) * f * 0.5;
-          p.spin += (Math.random() - 0.5) * 0.006;
+        if (d < 100 && d > 0) {
+          p.x += (dx / d) * 1.2;
+          p.y += (dy / d) * 0.6;
+          p.spin += (Math.random() - 0.5) * 0.004;
         }
 
-        // Off screen — reset from top
-        if (p.y > H + p.size * 2 || p.x < -p.size * 3 || p.x > W + p.size * 3) {
-          p.reset(false);
-        }
+        // Reset off-screen petals
+        if (p.y > H + p.h * 2) { p.reset(false); }
+        if (p.x < -p.w * 2 || p.x > W + p.w * 2) { p.reset(false); }
 
-        // Draw petal image with rotation + tilt
+        // Draw with correct aspect ratio
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.angle);
-        var tiltX = 0.3 + Math.abs(Math.cos(p.tilt)) * 0.7;
-        ctx.scale(tiltX, 1);
+        // 3D tilt — scale width to simulate flipping
+        var flipX = 0.4 + Math.abs(Math.cos(p.tilt)) * 0.6;
+        ctx.scale(flipX, 1);
         ctx.globalAlpha = p.op;
-        var half = p.size / 2;
-        ctx.drawImage(p.img, -half, -half, p.size, p.size);
+        ctx.drawImage(p.img, -p.w / 2, -p.h / 2, p.w, p.h);
         ctx.restore();
       }
 

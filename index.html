@@ -282,7 +282,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
 .cal-hdr{font-size:10px;color:var(--muted);font-weight:600;padding:4px 0;text-transform:uppercase}
 @media(max-width:900px){.sidebar{width:60px}.sidebar-brand,.nav-label,.status-summary h4,.status-item span:not(.count){display:none}.nav-item{justify-content:center;padding:12px}.nav-item .badge{display:none}}
 /* Purple floating particles */
-.particle-canvas{display:none}
+.particle-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999}
 /* Header light sweep */
 .topbar{position:relative;overflow:hidden}
 .topbar::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(168,85,247,.06),rgba(168,85,247,.1),rgba(168,85,247,.06),transparent);animation:headerSweep 8s ease-in-out infinite;pointer-events:none}
@@ -3327,7 +3327,7 @@ function renderGameCards() {
   }
 }
 
-// ============ CHERRY BLOSSOM PETALS ============
+// ============ FALLING PETAL IMAGES ============
 (function() {
   var canvas = document.getElementById('particleCanvas');
   if (!canvas) return;
@@ -3335,151 +3335,122 @@ function renderGameCards() {
   var petals = [];
   var mouse = {x: -1000, y: -1000};
   var W, H;
+  var imagesLoaded = 0;
+  var petalImages = [];
+  var PETAL_SRCS = ['petal1.png','petal2.png','petal3.png','petal4.png','petal5.png','petal6.png'];
+
   function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
   resize();
   window.addEventListener('resize', resize);
   document.addEventListener('mousemove', function(e) { mouse.x = e.clientX; mouse.y = e.clientY; });
 
-  // Pink/magenta/purple petal colors — vivid for dark bg
-  var COLORS = [
-    [236,72,153],  // pink-500
-    [244,114,182], // pink-400
-    [251,146,200], // pink-300
-    [192,132,252], // purple-300
-    [168,85,247],  // purple-500
-    [253,164,175], // rose-300
-    [249,115,22],  // warm accent (rare)
-  ];
+  // Load all petal images, then start animation
+  PETAL_SRCS.forEach(function(src) {
+    var img = new Image();
+    img.onload = function() {
+      imagesLoaded++;
+      if (imagesLoaded === PETAL_SRCS.length) startPetals();
+    };
+    img.onerror = function() {
+      imagesLoaded++;
+      if (imagesLoaded === PETAL_SRCS.length) startPetals();
+    };
+    img.src = src;
+    petalImages.push(img);
+  });
 
-  function Petal() { this.reset(true); }
+  function Petal(init) { this.reset(init); }
   Petal.prototype.reset = function(init) {
-    // 3 size tiers: small(bg), medium, large(foreground)
+    // Pick random loaded image
+    this.img = petalImages[Math.floor(Math.random() * petalImages.length)];
+    // 3 size tiers for depth
     var tier = Math.random();
-    if (tier < 0.3) { this.size = 8 + Math.random() * 6; this.layer = 0.4; }       // small far
-    else if (tier < 0.75) { this.size = 14 + Math.random() * 10; this.layer = 0.7; } // medium
-    else { this.size = 22 + Math.random() * 14; this.layer = 1.0; }                  // large close
+    if (tier < 0.3) { this.size = 20 + Math.random() * 15; this.layer = 0.5; }
+    else if (tier < 0.7) { this.size = 35 + Math.random() * 20; this.layer = 0.75; }
+    else { this.size = 50 + Math.random() * 30; this.layer = 1.0; }
 
-    this.x = Math.random() * (W + 300) - 150;
-    this.y = init ? (Math.random() * (H + 200) - 100) : -(this.size + Math.random() * 200);
-    // Fall speed scaled by layer
-    this.speedY = (0.2 + Math.random() * 0.5) * this.layer;
-    this.speedX = (-0.3 + Math.random() * 0.6) * this.layer;
+    this.x = Math.random() * (W + 200) - 100;
+    this.y = init ? (Math.random() * (H + 200) - 100) : -(this.size + Math.random() * 300);
+    // Fall + drift
+    this.speedY = (0.15 + Math.random() * 0.4) * this.layer;
+    this.speedX = (-0.2 + Math.random() * 0.4) * this.layer;
     // Wind sway
-    this.swayAmp = (0.4 + Math.random() * 1.2) * this.layer;
-    this.swayFreq = 0.006 + Math.random() * 0.012;
+    this.swayAmp = (0.3 + Math.random() * 1.0) * this.layer;
+    this.swayFreq = 0.005 + Math.random() * 0.01;
     this.swayOff = Math.random() * Math.PI * 2;
     // Rotation
     this.angle = Math.random() * Math.PI * 2;
-    this.spin = (Math.random() - 0.5) * 0.025;
-    // 3D tumble
+    this.spin = (Math.random() - 0.5) * 0.015;
+    // 3D tumble (scale X to simulate flip)
     this.tilt = Math.random() * Math.PI * 2;
-    this.tiltSpd = 0.008 + Math.random() * 0.018;
+    this.tiltSpd = 0.006 + Math.random() * 0.014;
     // Opacity
-    this.baseOp = (0.35 + Math.random() * 0.45) * (this.layer * 0.7 + 0.3);
+    this.baseOp = (0.4 + Math.random() * 0.4) * (this.layer * 0.6 + 0.4);
     this.op = this.baseOp;
     this.opPhase = Math.random() * Math.PI * 2;
-    // Color
-    this.c = COLORS[Math.floor(Math.random() * COLORS.length)];
     this.life = 0;
-    // Blur for depth (large bg petals get more blur)
-    this.blur = this.layer < 0.5 ? 2 : 0;
   };
 
-  function drawPetal(p) {
-    ctx.save();
-    ctx.translate(p.x, p.y);
-    ctx.rotate(p.angle);
-    var tiltScale = 0.25 + Math.abs(Math.cos(p.tilt)) * 0.75;
-    ctx.scale(tiltScale, 1);
+  function startPetals() {
+    // Only use successfully loaded images
+    var loaded = petalImages.filter(function(img) { return img.naturalWidth > 0; });
+    if (loaded.length === 0) return;
+    petalImages = loaded;
 
-    var s = p.size;
-    var r = p.c[0], g = p.c[1], b = p.c[2];
+    // Create petals
+    for (var i = 0; i < 45; i++) petals.push(new Petal(true));
 
-    // Outer glow
-    ctx.globalAlpha = p.op * 0.35;
-    var grd = ctx.createRadialGradient(0, 0, 0, 0, 0, s * 3);
-    grd.addColorStop(0, 'rgba(' + r + ',' + g + ',' + b + ',0.3)');
-    grd.addColorStop(0.5, 'rgba(' + r + ',' + g + ',' + b + ',0.08)');
-    grd.addColorStop(1, 'rgba(' + r + ',' + g + ',' + b + ',0)');
-    ctx.fillStyle = grd;
-    ctx.beginPath();
-    ctx.arc(0, 0, s * 3, 0, Math.PI * 2);
-    ctx.fill();
+    function animate() {
+      ctx.clearRect(0, 0, W, H);
+      // Use 'screen' blend to make black bg transparent
+      ctx.globalCompositeOperation = 'screen';
 
-    // Petal shape — 5-petal blossom style (rounded)
-    ctx.globalAlpha = p.op;
-    ctx.beginPath();
-    ctx.moveTo(0, -s * 0.95);
-    ctx.bezierCurveTo(s * 0.55, -s * 0.9, s * 0.85, -s * 0.2, s * 0.15, s * 0.6);
-    ctx.bezierCurveTo(s * 0.05, s * 0.8, -s * 0.05, s * 0.8, -s * 0.15, s * 0.6);
-    ctx.bezierCurveTo(-s * 0.85, -s * 0.2, -s * 0.55, -s * 0.9, 0, -s * 0.95);
-    ctx.closePath();
+      for (var i = 0; i < petals.length; i++) {
+        var p = petals[i];
+        p.life++;
+        // Sway + fall
+        p.x += p.speedX + Math.sin(p.life * p.swayFreq + p.swayOff) * p.swayAmp;
+        p.y += p.speedY;
+        // Spin and tumble
+        p.angle += p.spin;
+        p.tilt += p.tiltSpd;
+        // Opacity breathe
+        p.opPhase += 0.01;
+        p.op = p.baseOp + Math.sin(p.opPhase) * 0.08;
+        if (p.op < 0.15) p.op = 0.15;
 
-    // Gradient fill — lighter center to deeper edge
-    var fill = ctx.createRadialGradient(0, -s * 0.1, 0, 0, 0, s);
-    fill.addColorStop(0, 'rgba(' + Math.min(r+50,255) + ',' + Math.min(g+40,255) + ',' + Math.min(b+30,255) + ',' + p.op + ')');
-    fill.addColorStop(0.6, 'rgba(' + r + ',' + g + ',' + b + ',' + p.op + ')');
-    fill.addColorStop(1, 'rgba(' + Math.max(r-30,0) + ',' + Math.max(g-30,0) + ',' + Math.max(b-20,0) + ',' + (p.op * 0.8) + ')');
-    ctx.fillStyle = fill;
-    ctx.fill();
+        // Mouse — petals scatter gently
+        var dx = p.x - mouse.x, dy = p.y - mouse.y;
+        var d = Math.sqrt(dx * dx + dy * dy);
+        if (d < 130) {
+          var f = (1 - d / 130) * 1.5;
+          p.x += (dx / d) * f;
+          p.y += (dy / d) * f * 0.5;
+          p.spin += (Math.random() - 0.5) * 0.006;
+        }
 
-    // Center vein
-    ctx.beginPath();
-    ctx.moveTo(0, -s * 0.7);
-    ctx.quadraticCurveTo(s * 0.03, s * 0.1, 0, s * 0.5);
-    ctx.strokeStyle = 'rgba(' + Math.max(r-40,0) + ',' + Math.max(g-40,0) + ',' + Math.max(b-40,0) + ',' + (p.op * 0.4) + ')';
-    ctx.lineWidth = 0.6;
-    ctx.stroke();
+        // Off screen — reset from top
+        if (p.y > H + p.size * 2 || p.x < -p.size * 3 || p.x > W + p.size * 3) {
+          p.reset(false);
+        }
 
-    // Light edge on one side
-    ctx.beginPath();
-    ctx.moveTo(0, -s * 0.95);
-    ctx.bezierCurveTo(s * 0.55, -s * 0.9, s * 0.85, -s * 0.2, s * 0.15, s * 0.6);
-    ctx.strokeStyle = 'rgba(255,255,255,' + (p.op * 0.25) + ')';
-    ctx.lineWidth = 0.5;
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
-  // 55 petals for good coverage
-  for (var i = 0; i < 55; i++) petals.push(new Petal());
-
-  function animate() {
-    ctx.clearRect(0, 0, W, H);
-    for (var i = 0; i < petals.length; i++) {
-      var p = petals[i];
-      p.life++;
-      // Sway + fall
-      p.x += p.speedX + Math.sin(p.life * p.swayFreq + p.swayOff) * p.swayAmp;
-      p.y += p.speedY;
-      // Spin and tumble
-      p.angle += p.spin;
-      p.tilt += p.tiltSpd;
-      // Opacity breathe
-      p.opPhase += 0.012;
-      p.op = p.baseOp + Math.sin(p.opPhase) * 0.08;
-      if (p.op < 0.1) p.op = 0.1;
-
-      // Mouse — petals drift away gently
-      var dx = p.x - mouse.x, dy = p.y - mouse.y;
-      var d = Math.sqrt(dx * dx + dy * dy);
-      if (d < 150) {
-        var f = (1 - d / 150) * 2;
-        p.x += (dx / d) * f;
-        p.y += (dy / d) * f * 0.5;
-        p.spin += (Math.random() - 0.5) * 0.008;
+        // Draw petal image with rotation + tilt
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.angle);
+        var tiltX = 0.3 + Math.abs(Math.cos(p.tilt)) * 0.7;
+        ctx.scale(tiltX, 1);
+        ctx.globalAlpha = p.op;
+        var half = p.size / 2;
+        ctx.drawImage(p.img, -half, -half, p.size, p.size);
+        ctx.restore();
       }
 
-      // Off screen — reset from top
-      if (p.y > H + p.size * 4 || p.x < -p.size * 5 || p.x > W + p.size * 5) {
-        p.reset(false);
-      }
-      drawPetal(p);
+      ctx.globalCompositeOperation = 'source-over';
+      requestAnimationFrame(animate);
     }
-    requestAnimationFrame(animate);
+    animate();
   }
-  animate();
 })();
 </script>
 </body>

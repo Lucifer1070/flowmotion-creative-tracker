@@ -92,7 +92,7 @@ tbody tr:hover{background:rgba(168,85,247,.06);box-shadow:inset 0 0 30px rgba(16
 .badge-onhold{background:rgba(245,158,11,.15);color:var(--orange)}
 .badge-stopped{background:rgba(100,116,139,.15);color:var(--muted)}
 .status-toggle{position:relative;cursor:pointer;user-select:none}
-.status-dropdown{display:none;position:absolute;bottom:100%;left:0;background:linear-gradient(160deg,#160d30,#1a1040);border:1px solid var(--border);border-radius:8px;z-index:999;min-width:130px;padding:4px 0;box-shadow:0 -8px 24px rgba(0,0,0,.5),0 0 16px rgba(168,85,247,.05);margin-bottom:4px}
+.status-dropdown{display:none;position:absolute;top:100%;left:0;background:linear-gradient(160deg,#160d30,#1a1040);border:1px solid var(--border);border-radius:8px;z-index:999;min-width:130px;padding:4px 0;box-shadow:0 8px 24px rgba(0,0,0,.5),0 0 16px rgba(168,85,247,.05);margin-top:4px}
 .status-dropdown.open{display:block}
 .status-dropdown .sd-item{padding:7px 14px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s}
 .status-dropdown .sd-item:hover{background:rgba(168,85,247,.1)}
@@ -181,6 +181,11 @@ tbody tr:hover{background:rgba(168,85,247,.06);box-shadow:inset 0 0 30px rgba(16
 .chart-card{background:rgba(22,13,48,.7);border:1px solid rgba(168,85,247,.1);border-radius:10px;padding:20px;backdrop-filter:blur(6px)}
 .chart-card h4{font-size:14px;margin-bottom:16px;color:#f1f5f9}
 .chart-card canvas{max-height:260px}
+.roas-cell{display:flex;align-items:center;justify-content:center;gap:5px;font-size:12px}
+.roas-arrow{font-size:11px;animation:arrowPulse 2s ease-in-out infinite}
+.roas-arrow.up{color:var(--green);text-shadow:0 0 8px rgba(16,185,129,.6),0 0 16px rgba(16,185,129,.3)}
+.roas-arrow.down{color:var(--red);text-shadow:0 0 8px rgba(239,68,68,.6),0 0 16px rgba(239,68,68,.3)}
+@keyframes arrowPulse{0%,100%{opacity:.7;filter:brightness(1)}50%{opacity:1;filter:brightness(1.4)}}
 /* Idea Vault */
 .idea-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
 .idea-card{background:rgba(22,13,48,.7);border:1px solid rgba(168,85,247,.1);border-radius:10px;padding:20px;cursor:pointer;transition:all .3s;backdrop-filter:blur(6px)}
@@ -256,7 +261,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
 .team-add-row button{padding:6px 12px;background:var(--accent);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer}
 /* Inline assign editor */
 .assign-cell{cursor:pointer;position:relative}
-.assign-popup{display:none;position:absolute;bottom:100%;left:0;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:999;min-width:180px;padding:8px;box-shadow:0 -8px 24px rgba(0,0,0,.4);margin-bottom:4px}
+.assign-popup{display:none;position:absolute;top:100%;left:0;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:999;min-width:180px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.4);margin-top:4px}
 .assign-popup.open{display:block}
 .assign-popup .ap-member{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:4px;cursor:pointer;font-size:12px;transition:background .15s}
 .assign-popup .ap-member:hover{background:rgba(168,85,247,.1)}
@@ -1473,9 +1478,13 @@ function renderTable() {
     }
     prioHtml += '</div>';
 
-    // D7 ROAS
+    // D7 ROAS with performance arrows
     var roasStr = t.d7roas != null ? t.d7roas.toFixed(1) + 'x' : '—';
     var roasColor = t.d7roas > 0 ? 'var(--green)' : (t.d7roas < 0 ? 'var(--red)' : 'var(--muted)');
+    var perfTag = autoTag(t);
+    var roasArrow = '';
+    if (perfTag === 'winner') roasArrow = '<i class="fa-solid fa-arrow-trend-up roas-arrow up"></i>';
+    else if (perfTag === 'loser') roasArrow = '<i class="fa-solid fa-arrow-trend-down roas-arrow down"></i>';
 
     // Created & Due Date formatting
     var createdStr = t.created ? new Date(t.created).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) : '—';
@@ -1497,7 +1506,7 @@ function renderTable() {
     html += '<div style="display:flex;gap:4px;justify-content:center">' + netHtml + '</div>';
     html += '<div class="t-center">' + prioHtml + '</div>';
     html += '<div class="t-center assign-cell" onclick="event.stopPropagation();toggleAssignPopup(this,\'' + t.id + '\')">' + assignHtml + '<div class="assign-popup" id="ap-' + t.id + '"></div></div>';
-    html += '<div style="text-align:center;font-size:12px;color:' + roasColor + '">' + roasStr + '</div>';
+    html += '<div class="roas-cell" style="color:' + roasColor + '">' + roasArrow + roasStr + '</div>';
     html += '<div style="text-align:center;font-size:12px;color:var(--muted)">' + spendStr + '</div>';
     html += '<div style="text-align:center;font-size:12px;color:var(--muted)">' + cpiStr + '</div>';
     html += '</div>';

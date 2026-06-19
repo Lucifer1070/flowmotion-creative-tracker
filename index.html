@@ -2785,9 +2785,9 @@ function changeStatus(id, newStatus) {
   if (_openDropdown) { _openDropdown.classList.remove('open'); _openDropdown = null; }
 }
 
-// ============ ACTIVITY LOG ============
-var ACTIVITY_KEY = 'fm_activity_log';
-var activityLog = JSON.parse(localStorage.getItem(ACTIVITY_KEY)) || [];
+// ============ ACTIVITY LOG (Centralized via Google Sheet) ============
+var activityLog = [];
+var activityLoaded = false;
 
 function logActivity(action, details) {
   if (!currentUser || currentUser === 'Guest') return;
@@ -2798,19 +2798,51 @@ function logActivity(action, details) {
     action: action,
     details: details
   };
-  activityLog.unshift(entry); // newest first
-  if (activityLog.length > 500) activityLog = activityLog.slice(0, 500); // cap at 500
-  localStorage.setItem(ACTIVITY_KEY, JSON.stringify(activityLog));
+  // Add to local cache immediately
+  activityLog.unshift(entry);
+  if (activityLog.length > 500) activityLog = activityLog.slice(0, 500);
+  // Sync to Google Sheet (fire & forget)
+  fetch(SYNC_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain'},
+    body: JSON.stringify({action: 'logActivity', entry: entry})
+  }).catch(function(e){ console.warn('Activity log sync failed:', e); });
+}
+
+function fetchActivityLog(callback) {
+  fetch(SYNC_URL + '?action=getActivityLog')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (data.success && data.log) {
+        activityLog = data.log;
+        activityLoaded = true;
+      }
+      if (callback) callback();
+    })
+    .catch(function(e){
+      console.warn('Could not fetch activity log:', e);
+      if (callback) callback();
+    });
 }
 
 function renderActivityLog() {
   var container = document.getElementById('activityLogTable');
   if (!container) return;
+  // Fetch from server if not loaded yet
+  if (!activityLoaded) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)"><i class="fa-solid fa-spinner fa-spin"></i> Loading activity log...</div>';
+    fetchActivityLog(function(){ renderActivityLog(); });
+    return;
+  }
   if (activityLog.length === 0) {
     container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">No activity recorded yet</div>';
     return;
   }
-  var html = '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+  var html = '<div style="display:flex;gap:8px;margin-bottom:12px">';
+  html += '<button onclick="fetchActivityLog(function(){renderActivityLog();showToast(\'Log refreshed\')})" style="padding:5px 12px;background:var(--accent);border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer"><i class="fa-solid fa-refresh"></i> Refresh</button>';
+  html += '<span style="font-size:11px;color:var(--muted);line-height:28px">' + activityLog.length + ' entries</span>';
+  html += '</div>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:12px">';
   html += '<thead><tr style="border-bottom:1px solid var(--border)">';
   html += '<th style="padding:8px 12px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase">Time</th>';
   html += '<th style="padding:8px 12px;text-align:left;color:var(--muted);font-size:10px;text-transform:uppercase">User</th>';
@@ -2819,13 +2851,13 @@ function renderActivityLog() {
   html += '</tr></thead><tbody>';
   activityLog.forEach(function(entry) {
     var d = new Date(entry.time);
-    var timeStr = d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}) + ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    var timeStr = d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) + ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     var actionColor = '#f1f5f9';
     if (entry.action.indexOf('Status') !== -1) actionColor = '#10b981';
     else if (entry.action.indexOf('Created') !== -1 || entry.action.indexOf('Added') !== -1) actionColor = '#a855f7';
     else if (entry.action.indexOf('Deleted') !== -1 || entry.action.indexOf('Archived') !== -1) actionColor = '#ef4444';
     else if (entry.action.indexOf('Edited') !== -1 || entry.action.indexOf('Changed') !== -1) actionColor = '#f59e0b';
-    else if (entry.action.indexOf('Login') !== -1) actionColor = '#a855f7';
+    else if (entry.action.indexOf('Login') !== -1) actionColor = '#60a5fa';
     html += '<tr style="border-bottom:1px solid var(--border)">';
     html += '<td style="padding:8px 12px;color:var(--muted);white-space:nowrap">'+timeStr+'</td>';
     html += '<td style="padding:8px 12px;color:#f1f5f9;font-weight:500">'+entry.user+'</td>';
@@ -2839,11 +2871,15 @@ function renderActivityLog() {
 
 function clearActivityLog() {
   if (!isCurrentAdmin()) { showToast('Only admin can clear log', true); return; }
-  if (!confirm('Clear entire activity log?')) return;
-  activityLog = [];
-  localStorage.setItem(ACTIVITY_KEY, JSON.stringify(activityLog));
-  renderActivityLog();
-  showToast('Activity log cleared');
+  if (!confirm('Clear entire activity log? This will delete all records from Google Sheet.')) return;
+  fetch(SYNC_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain'},
+    body: JSON.stringify({action: 'clearActivityLog'})
+  }).then(function(r){ return r.json(); }).then(function(data){
+    if (data.success) { activityLog = []; renderActivityLog(); showToast('Activity log cleared from server'); }
+    else showToast('Failed to clear log', true);
+  }).catch(function(){ showToast('Could not clear log', true); });
 }
 
 // ============ LIVE SOUND ============

@@ -1481,7 +1481,7 @@ function renderTable() {
     // D7 ROAS with performance arrows
     var roasStr = t.d7roas != null ? t.d7roas.toFixed(1) + 'x' : '—';
     var roasColor = t.d7roas > 0 ? 'var(--green)' : (t.d7roas < 0 ? 'var(--red)' : 'var(--muted)');
-    var perfTag = autoTag(t);
+    var perfTag = getAutoTag(t);
     var roasArrow = '';
     if (perfTag === 'winner') roasArrow = '<i class="fa-solid fa-arrow-trend-up roas-arrow up"></i>';
     else if (perfTag === 'loser') roasArrow = '<i class="fa-solid fa-arrow-trend-down roas-arrow down"></i>';

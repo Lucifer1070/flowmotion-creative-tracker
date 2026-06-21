@@ -591,9 +591,9 @@ tbody tr:hover{animation:rowGlowPulse 2s ease-in-out infinite}
           <div class="aigen-field" style="grid-column:1/-1">
             <label>Ad Dimensions</label>
             <div class="aigen-dims" id="aigenDims">
-              <label class="aigen-dim-check selected" onclick="toggleDim(this)"><input type="checkbox" value="1024x1792" checked><i class="fa-solid fa-mobile-screen"></i>&nbsp; Portrait (1080x1920)</label>
+              <label class="aigen-dim-check selected" onclick="toggleDim(this)"><input type="checkbox" value="1024x1536" checked><i class="fa-solid fa-mobile-screen"></i>&nbsp; Portrait (1080x1920)</label>
               <label class="aigen-dim-check selected" onclick="toggleDim(this)"><input type="checkbox" value="1024x1024" checked><i class="fa-solid fa-square"></i>&nbsp; Square (1080x1080)</label>
-              <label class="aigen-dim-check selected" onclick="toggleDim(this)"><input type="checkbox" value="1792x1024" checked><i class="fa-solid fa-display"></i>&nbsp; Landscape (1200x628)</label>
+              <label class="aigen-dim-check selected" onclick="toggleDim(this)"><input type="checkbox" value="1536x1024" checked><i class="fa-solid fa-display"></i>&nbsp; Landscape (1200x628)</label>
             </div>
           </div>
           <div class="aigen-field" style="grid-column:1/-1">
@@ -3619,9 +3619,9 @@ function generateStaticAds() {
 }
 
 function getDimLabel(dim) {
-  if (dim === '1024x1792') return 'Portrait (1080x1920)';
+  if (dim === '1024x1536') return 'Portrait (1080x1920)';
   if (dim === '1024x1024') return 'Square (1080x1080)';
-  if (dim === '1792x1024') return 'Landscape (1200x628)';
+  if (dim === '1536x1024') return 'Landscape (1200x628)';
   return dim;
 }
 

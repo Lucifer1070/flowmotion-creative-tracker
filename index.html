@@ -186,6 +186,44 @@ tbody tr:hover{background:rgba(168,85,247,.06);box-shadow:inset 0 0 30px rgba(16
 .roas-arrow.up{color:var(--green);text-shadow:0 0 8px rgba(16,185,129,.6),0 0 16px rgba(16,185,129,.3)}
 .roas-arrow.down{color:var(--red);text-shadow:0 0 8px rgba(239,68,68,.6),0 0 16px rgba(239,68,68,.3)}
 @keyframes arrowPulse{0%,100%{opacity:.7;filter:brightness(1)}50%{opacity:1;filter:brightness(1.4)}}
+/* Static Ad Generator */
+.aigen-tabs{display:flex;gap:4px;margin-bottom:20px;background:rgba(14,6,32,.6);border-radius:10px;padding:4px;border:1px solid var(--border)}
+.aigen-tab{flex:1;padding:10px;text-align:center;font-size:13px;color:var(--muted);cursor:pointer;border-radius:8px;transition:all .3s;font-weight:500}
+.aigen-tab.active{background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;box-shadow:0 0 12px rgba(168,85,247,.3)}
+.aigen-tab:hover:not(.active){background:rgba(168,85,247,.08);color:var(--text)}
+.aigen-panel{background:rgba(22,13,48,.7);border:1px solid rgba(168,85,247,.1);border-radius:12px;padding:24px;backdrop-filter:blur(6px)}
+.aigen-form{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.aigen-field{display:flex;flex-direction:column;gap:6px}
+.aigen-field label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.aigen-field select,.aigen-field input,.aigen-field textarea{background:rgba(168,85,247,.05);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;outline:none;transition:border-color .3s}
+.aigen-field select:focus,.aigen-field input:focus,.aigen-field textarea:focus{border-color:var(--accent);box-shadow:0 0 8px rgba(168,85,247,.15)}
+.aigen-field textarea{resize:vertical;min-height:60px}
+.aigen-dims{display:flex;gap:12px;flex-wrap:wrap}
+.aigen-dim-check{display:flex;align-items:center;gap:6px;padding:8px 14px;background:rgba(168,85,247,.05);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .3s;font-size:12px;color:var(--muted)}
+.aigen-dim-check:hover{border-color:var(--accent);color:var(--text)}
+.aigen-dim-check.selected{background:rgba(168,85,247,.15);border-color:var(--accent);color:var(--accent)}
+.aigen-dim-check input{display:none}
+.aigen-generate{grid-column:1/-1;padding:12px 28px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .3s;box-shadow:0 0 16px rgba(168,85,247,.2)}
+.aigen-generate:hover{background:linear-gradient(135deg,#a855f7,#c084fc);transform:translateY(-1px);box-shadow:0 0 24px rgba(168,85,247,.35)}
+.aigen-generate:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.aigen-preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;margin-top:20px}
+.aigen-preview-card{background:rgba(22,13,48,.9);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:all .3s}
+.aigen-preview-card:hover{border-color:var(--accent);box-shadow:0 4px 20px rgba(168,85,247,.12)}
+.aigen-preview-card img{width:100%;height:200px;object-fit:cover;border-bottom:1px solid var(--border)}
+.aigen-preview-info{padding:12px}
+.aigen-preview-info .dim-tag{font-size:10px;padding:2px 8px;background:rgba(168,85,247,.15);border-radius:4px;color:var(--accent)}
+.aigen-preview-info .concept-text{font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.aigen-preview-actions{display:flex;gap:8px;padding:0 12px 12px}
+.aigen-btn-approve{flex:1;padding:8px;background:var(--green);border:none;border-radius:6px;color:#fff;font-size:11px;cursor:pointer;font-weight:600;transition:all .2s}
+.aigen-btn-approve:hover{background:#059669;box-shadow:0 0 10px rgba(16,185,129,.3)}
+.aigen-btn-reject{flex:1;padding:8px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:6px;color:var(--red);font-size:11px;cursor:pointer;transition:all .2s}
+.aigen-btn-reject:hover{background:rgba(239,68,68,.25)}
+.aigen-progress{grid-column:1/-1;margin-top:16px}
+.aigen-progress-bar{height:6px;background:rgba(168,85,247,.1);border-radius:3px;overflow:hidden}
+.aigen-progress-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a855f7);border-radius:3px;transition:width .5s;width:0%}
+.aigen-progress-text{font-size:11px;color:var(--muted);margin-top:6px;text-align:center}
+.aigen-history{margin-top:24px}
+.aigen-history h4{font-size:13px;color:#f1f5f9;margin-bottom:12px;display:flex;align-items:center;gap:8px}
 /* Idea Vault */
 .idea-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
 .idea-card{background:rgba(22,13,48,.7);border:1px solid rgba(168,85,247,.1);border-radius:10px;padding:20px;cursor:pointer;transition:all .3s;backdrop-filter:blur(6px)}
@@ -489,38 +527,102 @@ tbody tr:hover{animation:rowGlowPulse 2s ease-in-out infinite}
 
   <!-- Ad Factory View -->
   <div class="ideavault-view" id="adFactoryView">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <div><h3 style="font-size:16px;color:#f1f5f9">Ad Factory</h3><p style="font-size:12px;color:var(--muted)">Ads_Factory &mdash; Google Drive root &bull; Path: Game / Hook|Body|CTA|Final Merged</p></div>
-      <div style="display:flex;gap:8px">
-        <button class="btn-add" style="background:var(--green)" onclick="addAssetModal()">+ Add Asset</button>
-        <button class="btn-add" onclick="syncFromDrive()">&#9729; Sync Drive</button>
+    <!-- Tab switcher -->
+    <div class="aigen-tabs">
+      <div class="aigen-tab active" onclick="switchAFTab('library')"><i class="fa-solid fa-folder-open"></i>&nbsp; Asset Library</div>
+      <div class="aigen-tab" onclick="switchAFTab('generator')"><i class="fa-solid fa-wand-magic-sparkles"></i>&nbsp; AI Ad Generator</div>
+    </div>
+
+    <!-- Asset Library Tab (EXISTING - unchanged) -->
+    <div id="afLibraryTab">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div><h3 style="font-size:16px;color:#f1f5f9">Ad Factory</h3><p style="font-size:12px;color:var(--muted)">Ads_Factory &mdash; Google Drive root &bull; Path: Game / Hook|Body|CTA|Final Merged</p></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-add" style="background:var(--green)" onclick="addAssetModal()">+ Add Asset</button>
+          <button class="btn-add" onclick="syncFromDrive()">&#9729; Sync Drive</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="afKpiRow"></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px" id="afFolders"></div>
+      <div id="adFactoryStatus" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px"></div>
+      <div id="assetLibSection" style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <h4 style="font-size:14px;color:#f1f5f9">Asset Library</h4>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="afGameFilter" class="filter-btn" style="font-size:12px" onchange="renderAdFactory()"><option value="">All Games</option><option value="CC">CC - Cooking Crush</option><option value="CK">CK - Cooking Chaos</option><option value="CN">CN - Cooking Crunch</option><option value="KK">KK - Kitchen Craze</option><option value="GM">GM - Gym Mania</option><option value="MH">MH - My Hotel</option><option value="RR">RR - Recipe Rush</option></select>
+            <select id="afTypeFilter" class="filter-btn" style="font-size:12px" onchange="renderAdFactory()"><option value="">All Types</option><option value="Hook">Hook</option><option value="Body">Body</option><option value="CTA">CTA</option><option value="Final">Final Merged</option></select>
+            <div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden">
+              <button id="afViewList" class="filter-btn" style="border:none;border-radius:0;padding:6px 10px;font-size:14px" onclick="setAFView('list')" title="List View">&#9776;</button>
+              <button id="afViewThumb" class="filter-btn" style="border:none;border-radius:0;padding:6px 10px;font-size:14px;background:var(--accent);color:#fff" onclick="setAFView('thumb')" title="Thumbnail View">&#9871;</button>
+            </div>
+          </div>
+        </div>
+        <div id="afTableWrap" style="max-height:400px;overflow-y:auto">
+          <table style="min-width:auto"><thead><tr>
+            <th style="font-size:10px">File Name</th><th style="font-size:10px">Type</th><th style="font-size:10px">Game</th><th style="font-size:10px">Hook</th><th style="font-size:10px">Body</th><th style="font-size:10px">CTA</th><th style="font-size:10px">Date</th>
+          </tr></thead><tbody id="afTableBody"></tbody></table>
+        </div>
+        <div id="afThumbGrid" style="display:none;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;padding:16px;max-height:500px;overflow-y:auto"></div>
       </div>
     </div>
-    <!-- Asset KPI Row -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="afKpiRow"></div>
-    <!-- Folder Structure -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px" id="afFolders"></div>
-    <!-- Drive Connection Status -->
-    <div id="adFactoryStatus" style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:20px"></div>
-    <!-- Asset Table -->
-    <div id="assetLibSection" style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden">
-      <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <h4 style="font-size:14px;color:#f1f5f9">Asset Library</h4>
-        <div style="display:flex;gap:8px;align-items:center">
-          <select id="afGameFilter" class="filter-btn" style="font-size:12px" onchange="renderAdFactory()"><option value="">All Games</option><option value="CC">CC - Cooking Crush</option><option value="CK">CK - Cooking Chaos</option><option value="CN">CN - Cooking Crunch</option><option value="KK">KK - Kitchen Craze</option><option value="GM">GM - Gym Mania</option><option value="MH">MH - My Hotel</option><option value="RR">RR - Recipe Rush</option></select>
-          <select id="afTypeFilter" class="filter-btn" style="font-size:12px" onchange="renderAdFactory()"><option value="">All Types</option><option value="Hook">Hook</option><option value="Body">Body</option><option value="CTA">CTA</option><option value="Final">Final Merged</option></select>
-          <div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden">
-            <button id="afViewList" class="filter-btn" style="border:none;border-radius:0;padding:6px 10px;font-size:14px" onclick="setAFView('list')" title="List View">&#9776;</button>
-            <button id="afViewThumb" class="filter-btn" style="border:none;border-radius:0;padding:6px 10px;font-size:14px;background:var(--accent);color:#fff" onclick="setAFView('thumb')" title="Thumbnail View">&#9871;</button>
+
+    <!-- AI Ad Generator Tab -->
+    <div id="afGeneratorTab" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <div><h3 style="font-size:16px;color:#f1f5f9"><i class="fa-solid fa-wand-magic-sparkles" style="color:var(--accent)"></i>&nbsp; AI Static Ad Generator</h3><p style="font-size:12px;color:var(--muted)">Generate fresh static ad creatives using AI &bull; Powered by DALL-E 3</p></div>
+      </div>
+      <div class="aigen-panel">
+        <div class="aigen-form" id="aigenForm">
+          <div class="aigen-field">
+            <label>Game</label>
+            <select id="aigenGame">
+              <option value="CC">CC - Cooking Crush</option>
+              <option value="CK">CK - Cooking Chaos</option>
+              <option value="CN">CN - Cooking Crunch</option>
+              <option value="KK">KK - Kitchen Craze</option>
+              <option value="GM">GM - Gym Mania</option>
+              <option value="MH">MH - My Hotel</option>
+            </select>
+          </div>
+          <div class="aigen-field">
+            <label>Number of Ads</label>
+            <input type="number" id="aigenCount" min="1" max="10" value="3" placeholder="1-10">
+          </div>
+          <div class="aigen-field" style="grid-column:1/-1">
+            <label>Ad Dimensions</label>
+            <div class="aigen-dims" id="aigenDims">
+              <label class="aigen-dim-check selected" onclick="toggleDim(this)"><input type="checkbox" value="1024x1792" checked><i class="fa-solid fa-mobile-screen"></i>&nbsp; Portrait (1080x1920)</label>
+              <label class="aigen-dim-check selected" onclick="toggleDim(this)"><input type="checkbox" value="1024x1024" checked><i class="fa-solid fa-square"></i>&nbsp; Square (1080x1080)</label>
+              <label class="aigen-dim-check selected" onclick="toggleDim(this)"><input type="checkbox" value="1792x1024" checked><i class="fa-solid fa-display"></i>&nbsp; Landscape (1200x628)</label>
+            </div>
+          </div>
+          <div class="aigen-field" style="grid-column:1/-1">
+            <label>Theme / Concept Hint (optional)</label>
+            <textarea id="aigenHint" placeholder="e.g., 'Summer sale theme', 'Show cooking competition', 'Festive Diwali vibes'..."></textarea>
+          </div>
+          <button class="aigen-generate" id="aigenBtn" onclick="generateStaticAds()"><i class="fa-solid fa-bolt"></i> Generate Ads</button>
+          <div class="aigen-progress" id="aigenProgress" style="display:none">
+            <div class="aigen-progress-bar"><div class="aigen-progress-fill" id="aigenProgressFill"></div></div>
+            <p class="aigen-progress-text" id="aigenProgressText">Generating...</p>
           </div>
         </div>
       </div>
-      <div id="afTableWrap" style="max-height:400px;overflow-y:auto">
-        <table style="min-width:auto"><thead><tr>
-          <th style="font-size:10px">File Name</th><th style="font-size:10px">Type</th><th style="font-size:10px">Game</th><th style="font-size:10px">Hook</th><th style="font-size:10px">Body</th><th style="font-size:10px">CTA</th><th style="font-size:10px">Date</th>
-        </tr></thead><tbody id="afTableBody"></tbody></table>
+      <!-- Preview Grid -->
+      <div id="aigenPreviewSection" style="display:none;margin-top:24px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h4 style="font-size:14px;color:#f1f5f9"><i class="fa-solid fa-images" style="color:var(--accent)"></i>&nbsp; Generated Previews</h4>
+          <div style="display:flex;gap:8px">
+            <button class="btn-add" style="font-size:11px;padding:6px 14px" onclick="approveAllAds()"><i class="fa-solid fa-check-double"></i>&nbsp; Approve All</button>
+            <button class="filter-btn" style="font-size:11px" onclick="clearPreviews()"><i class="fa-solid fa-trash"></i>&nbsp; Clear</button>
+          </div>
+        </div>
+        <div class="aigen-preview-grid" id="aigenPreviewGrid"></div>
       </div>
-      <div id="afThumbGrid" style="display:none;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;padding:16px;max-height:500px;overflow-y:auto"></div>
+      <!-- Generation History -->
+      <div class="aigen-history" id="aigenHistory" style="display:none">
+        <h4><i class="fa-solid fa-clock-rotate-left" style="color:var(--accent)"></i> Recent Generations</h4>
+        <div id="aigenHistoryList"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -3370,6 +3472,242 @@ function renderGameCards() {
     });
     heroRow.innerHTML = heroHtml;
   }
+}
+
+// ============ AI STATIC AD GENERATOR ============
+var generatedAds = [];
+var aiGenBusy = false;
+
+// Game style profiles for prompt engineering
+var gameStyleProfiles = {
+  'CC': { name: 'Cooking Crush', style: 'colorful cartoon cooking game', colors: 'warm oranges, reds, yellows', elements: 'delicious food dishes, kitchen utensils, chef characters, cooking flames, recipe ingredients', mood: 'fun, appetizing, energetic', cta: 'Play Now, Cook & Win, Start Cooking' },
+  'CK': { name: 'Cooking Chaos', style: 'fast-paced chaotic kitchen game', colors: 'vibrant reds, oranges, electric blues', elements: 'busy kitchen scenes, flying ingredients, timer clocks, multiple dishes, kitchen chaos', mood: 'exciting, hectic, thrilling', cta: 'Join the Chaos, Cook Fast, Play Now' },
+  'CN': { name: 'Cooking Crunch', style: 'time-pressure cooking challenge game', colors: 'deep reds, golds, warm browns', elements: 'crunchy food, time pressure elements, cooking challenges, scoreboards', mood: 'challenging, satisfying, competitive', cta: 'Beat the Clock, Crunch Time, Play Now' },
+  'KK': { name: 'Kitchen Craze', style: 'crazy fun kitchen management game', colors: 'bright pinks, purples, teals', elements: 'wild kitchen scenes, happy customers, food combos, power-ups', mood: 'crazy fun, addictive, rewarding', cta: 'Get Cooking, Join the Craze, Play Free' },
+  'GM': { name: 'Gym Mania', style: 'fitness tycoon management game', colors: 'energetic greens, blues, orange accents', elements: 'gym equipment, muscular characters, workout scenes, progress bars, trophies', mood: 'motivating, energetic, achievement-focused', cta: 'Build Your Gym, Get Fit, Play Now' },
+  'MH': { name: 'My Hotel', style: 'hotel management simulation game', colors: 'elegant golds, navy blues, cream whites', elements: 'luxury hotel rooms, happy guests, hotel lobby, room decorations, five-star ratings', mood: 'luxurious, relaxing, satisfying', cta: 'Build Your Hotel, Welcome Guests, Play Now' }
+};
+
+function switchAFTab(tab) {
+  var tabs = document.querySelectorAll('.aigen-tab');
+  tabs.forEach(function(t){ t.classList.remove('active'); });
+  if (tab === 'library') {
+    tabs[0].classList.add('active');
+    document.getElementById('afLibraryTab').style.display = 'block';
+    document.getElementById('afGeneratorTab').style.display = 'none';
+  } else {
+    tabs[1].classList.add('active');
+    document.getElementById('afLibraryTab').style.display = 'none';
+    document.getElementById('afGeneratorTab').style.display = 'block';
+  }
+}
+
+function toggleDim(el) {
+  el.classList.toggle('selected');
+  var cb = el.querySelector('input');
+  cb.checked = !cb.checked;
+}
+
+function getSelectedDims() {
+  var dims = [];
+  document.querySelectorAll('#aigenDims input:checked').forEach(function(cb) {
+    dims.push(cb.value);
+  });
+  return dims;
+}
+
+function generateStaticAds() {
+  if (aiGenBusy) return;
+  var game = document.getElementById('aigenGame').value;
+  var count = parseInt(document.getElementById('aigenCount').value) || 3;
+  var dims = getSelectedDims();
+  var hint = document.getElementById('aigenHint').value.trim();
+
+  if (dims.length === 0) { alert('Please select at least one dimension'); return; }
+  if (count < 1 || count > 10) { alert('Ad count must be between 1 and 10'); return; }
+
+  aiGenBusy = true;
+  var btn = document.getElementById('aigenBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+
+  var progress = document.getElementById('aigenProgress');
+  progress.style.display = 'block';
+
+  var totalImages = count * dims.length;
+  var completed = 0;
+
+  document.getElementById('aigenProgressFill').style.width = '0%';
+  document.getElementById('aigenProgressText').textContent = 'Starting generation... 0/' + totalImages + ' images';
+
+  generatedAds = [];
+
+  // Generate one at a time sequentially
+  var queue = [];
+  for (var i = 0; i < count; i++) {
+    for (var d = 0; d < dims.length; d++) {
+      queue.push({ game: game, dim: dims[d], index: i, hint: hint });
+    }
+  }
+
+  function processNext(idx) {
+    if (idx >= queue.length) {
+      // All done
+      aiGenBusy = false;
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fa-solid fa-bolt"></i> Generate Ads';
+      document.getElementById('aigenProgressFill').style.width = '100%';
+      document.getElementById('aigenProgressText').textContent = 'Done! ' + totalImages + '/' + totalImages + ' images generated';
+      renderAIPreview();
+      logActivity('AI Ad Generation', 'Generated ' + totalImages + ' static ads for ' + game);
+      return;
+    }
+
+    var item = queue[idx];
+    var profile = gameStyleProfiles[item.game] || gameStyleProfiles['CC'];
+
+    document.getElementById('aigenProgressText').textContent = 'Generating image ' + (idx + 1) + '/' + totalImages + '... (' + item.dim + ')';
+
+    fetch(SYNC_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'generateStaticAd',
+        game: item.game,
+        gameName: profile.name,
+        style: profile.style,
+        colors: profile.colors,
+        elements: profile.elements,
+        mood: profile.mood,
+        dimension: item.dim,
+        hint: item.hint,
+        conceptIndex: item.index
+      })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      completed++;
+      document.getElementById('aigenProgressFill').style.width = Math.round((completed / totalImages) * 100) + '%';
+      if (data.success && data.imageUrl) {
+        generatedAds.push({
+          id: Date.now() + '_' + idx,
+          game: item.game,
+          gameName: profile.name,
+          dim: item.dim,
+          dimLabel: getDimLabel(item.dim),
+          imageUrl: data.imageUrl,
+          prompt: data.prompt || '',
+          concept: data.concept || '',
+          driveFileId: data.driveFileId || '',
+          approved: false
+        });
+        renderAIPreview();
+      } else {
+        console.warn('Generation failed for', item.dim, data.error);
+      }
+      processNext(idx + 1);
+    })
+    .catch(function(err) {
+      completed++;
+      document.getElementById('aigenProgressFill').style.width = Math.round((completed / totalImages) * 100) + '%';
+      console.error('Generation error:', err);
+      processNext(idx + 1);
+    });
+  }
+
+  processNext(0);
+}
+
+function getDimLabel(dim) {
+  if (dim === '1024x1792') return 'Portrait (1080x1920)';
+  if (dim === '1024x1024') return 'Square (1080x1080)';
+  if (dim === '1792x1024') return 'Landscape (1200x628)';
+  return dim;
+}
+
+function renderAIPreview() {
+  var section = document.getElementById('aigenPreviewSection');
+  var grid = document.getElementById('aigenPreviewGrid');
+  if (generatedAds.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+
+  var html = '';
+  generatedAds.forEach(function(ad, i) {
+    var approvedClass = ad.approved ? 'style="opacity:.5;pointer-events:none"' : '';
+    var approvedBadge = ad.approved ? '<span style="position:absolute;top:8px;right:8px;background:var(--green);color:#fff;font-size:10px;padding:2px 8px;border-radius:4px"><i class="fa-solid fa-check"></i> Approved</span>' : '';
+    html += '<div class="aigen-preview-card" ' + approvedClass + '>';
+    html += '<div style="position:relative"><img src="' + ad.imageUrl + '" alt="' + ad.gameName + ' Ad" loading="lazy">' + approvedBadge + '</div>';
+    html += '<div class="aigen-preview-info">';
+    html += '<div style="display:flex;gap:6px;align-items:center"><span class="dim-tag">' + ad.dimLabel + '</span><span class="dim-tag" style="background:rgba(16,185,129,.15);color:var(--green)">' + ad.game + '</span></div>';
+    if (ad.concept) html += '<p class="concept-text">' + ad.concept + '</p>';
+    html += '</div>';
+    if (!ad.approved) {
+      html += '<div class="aigen-preview-actions">';
+      html += '<button class="aigen-btn-approve" onclick="approveAd(' + i + ')"><i class="fa-solid fa-check"></i> Approve</button>';
+      html += '<button class="aigen-btn-reject" onclick="rejectAd(' + i + ')"><i class="fa-solid fa-xmark"></i> Reject</button>';
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+  grid.innerHTML = html;
+}
+
+function approveAd(index) {
+  var ad = generatedAds[index];
+  if (!ad || ad.approved) return;
+  ad.approved = true;
+
+  // Create a task in the dashboard for this approved ad
+  var newTask = {
+    id: 'SA-' + Date.now(),
+    name: ad.gameName + ' Static Ad - ' + ad.dimLabel,
+    game: ad.game,
+    type: 'Static',
+    category: 'Final',
+    status: 'Ready',
+    assignedTo: currentUser || 'Unassigned',
+    network: 'All',
+    deadline: new Date().toISOString().split('T')[0],
+    notes: 'AI Generated Static Ad. Concept: ' + (ad.concept || 'Auto-generated') + '. Dimension: ' + ad.dimLabel,
+    d7roas: null,
+    archived: false,
+    createdAt: new Date().toISOString()
+  };
+
+  if (ad.driveFileId) {
+    newTask.driveLink = 'https://drive.google.com/file/d/' + ad.driveFileId + '/view';
+  }
+
+  tasks.push(newTask);
+  saveTasks();
+  renderAIPreview();
+  logActivity('Ad Approved', 'Approved AI static ad for ' + ad.gameName + ' (' + ad.dimLabel + ')');
+
+  // Brief success feedback
+  var btn = event.target.closest('.aigen-btn-approve');
+  if (btn) { btn.textContent = 'Approved!'; btn.style.background = '#059669'; }
+}
+
+function rejectAd(index) {
+  generatedAds.splice(index, 1);
+  renderAIPreview();
+}
+
+function approveAllAds() {
+  var unapproved = generatedAds.filter(function(a) { return !a.approved; });
+  if (unapproved.length === 0) { alert('No ads to approve'); return; }
+  if (!confirm('Approve all ' + unapproved.length + ' ads? Tasks will be created for each.')) return;
+  for (var i = 0; i < generatedAds.length; i++) {
+    if (!generatedAds[i].approved) {
+      approveAd(i);
+    }
+  }
+}
+
+function clearPreviews() {
+  if (!confirm('Clear all generated previews?')) return;
+  generatedAds = [];
+  renderAIPreview();
 }
 
 // ============ FALLING PETAL IMAGES ============

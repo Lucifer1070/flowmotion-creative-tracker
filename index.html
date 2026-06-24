@@ -325,7 +325,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
 .cal-hdr{font-size:10px;color:var(--muted);font-weight:600;padding:4px 0;text-transform:uppercase}
 @media(max-width:900px){.sidebar{width:60px}.sidebar-brand,.nav-label,.status-summary h4,.status-item span:not(.count){display:none}.nav-item{justify-content:center;padding:12px}.nav-item .badge{display:none}}
 /* Purple floating particles */
-.particle-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9999}
+.sakura-banner{position:absolute;top:0;right:0;width:100%;height:auto;max-height:180px;object-fit:cover;object-position:right top;pointer-events:none;z-index:0;opacity:0.85}
 /* Header light sweep */
 .topbar{position:relative;overflow:hidden}
 .topbar::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(168,85,247,.06),rgba(168,85,247,.1),rgba(168,85,247,.06),transparent);animation:headerSweep 8s ease-in-out infinite;pointer-events:none}
@@ -372,7 +372,6 @@ tbody tr:hover{animation:rowGlowPulse 2s ease-in-out infinite}
 </head>
 <body>
 
-<canvas class="particle-canvas" id="particleCanvas"></canvas>
 
 <!-- Sidebar -->
 <div class="sidebar">
@@ -399,7 +398,8 @@ tbody tr:hover{animation:rowGlowPulse 2s ease-in-out infinite}
 </div>
 
 <!-- Main Content -->
-<div class="main">
+<div class="main" style="position:relative">
+  <img src="Banner.jpg" class="sakura-banner" alt="">
   <!-- Top Bar -->
   <div class="topbar">
     <div class="topbar-left" style="display:none"><h2 id="viewTitle"></h2><p id="viewSubtitle"></p></div>
@@ -3710,234 +3710,8 @@ function clearPreviews() {
   renderAIPreview();
 }
 
-// ============ SAKURA THEME — MOON + BRANCH + FALLING PETALS ============
-(function() {
-  var canvas = document.getElementById('particleCanvas');
-  if (!canvas) return;
-  var ctx = canvas.getContext('2d');
-  var W, H;
-  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
-  resize();
-  window.addEventListener('resize', resize);
-  var mouse = {x:-1000,y:-1000};
-  document.addEventListener('mousemove', function(e){mouse.x=e.clientX;mouse.y=e.clientY;});
-
-  // Petal colors — soft pinks
-  var petalColors = [
-    'rgba(255,183,197,A)', 'rgba(255,160,180,A)', 'rgba(248,200,220,A)',
-    'rgba(255,140,170,A)', 'rgba(240,180,210,A)', 'rgba(255,200,215,A)'
-  ];
-
-  // Draw a single petal shape onto an offscreen canvas
-  function makePetalCanvas(color, w, h) {
-    var c = document.createElement('canvas');
-    c.width = w; c.height = h;
-    var x = c.getContext('2d');
-    x.beginPath();
-    x.moveTo(w*0.5, 0);
-    x.bezierCurveTo(w*0.85, h*0.15, w*1.0, h*0.55, w*0.5, h);
-    x.bezierCurveTo(w*0.0, h*0.55, w*0.15, h*0.15, w*0.5, 0);
-    x.closePath();
-    var g = x.createRadialGradient(w*0.5,h*0.35,0, w*0.5,h*0.5,w*0.6);
-    g.addColorStop(0, color.replace('A','0.95'));
-    g.addColorStop(0.6, color.replace('A','0.7'));
-    g.addColorStop(1, color.replace('A','0.3'));
-    x.fillStyle = g;
-    x.fill();
-    // Subtle center vein
-    x.strokeStyle = color.replace('A','0.25');
-    x.lineWidth = 0.5;
-    x.beginPath();
-    x.moveTo(w*0.5, h*0.1);
-    x.lineTo(w*0.5, h*0.75);
-    x.stroke();
-    return c;
-  }
-
-  // Pre-render petal images
-  var petalCanvases = [];
-  for (var i = 0; i < petalColors.length; i++) {
-    petalCanvases.push(makePetalCanvas(petalColors[i], 24, 28));
-    petalCanvases.push(makePetalCanvas(petalColors[i], 18, 22));
-  }
-
-  // Draw moon (static, drawn once per frame)
-  function drawMoon(ctx) {
-    var mx = W - 140, my = 90, r = 55;
-    // Outer glow
-    var glow = ctx.createRadialGradient(mx,my,r*0.5, mx,my,r*3);
-    glow.addColorStop(0, 'rgba(255,240,220,0.08)');
-    glow.addColorStop(0.4, 'rgba(255,220,200,0.03)');
-    glow.addColorStop(1, 'rgba(255,200,180,0)');
-    ctx.fillStyle = glow;
-    ctx.beginPath(); ctx.arc(mx,my,r*3,0,Math.PI*2); ctx.fill();
-    // Moon body
-    var mg = ctx.createRadialGradient(mx-10,my-10,r*0.1, mx,my,r);
-    mg.addColorStop(0, 'rgba(255,245,235,0.35)');
-    mg.addColorStop(0.5, 'rgba(255,230,215,0.2)');
-    mg.addColorStop(1, 'rgba(255,210,190,0.05)');
-    ctx.fillStyle = mg;
-    ctx.beginPath(); ctx.arc(mx,my,r,0,Math.PI*2); ctx.fill();
-    // Subtle crescent shadow
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.fillStyle = 'rgba(0,0,0,0.12)';
-    ctx.beginPath(); ctx.arc(mx+18,my-8,r*0.85,0,Math.PI*2); ctx.fill();
-    ctx.globalCompositeOperation = 'source-over';
-  }
-
-  // Draw cherry blossom branch (static decorative element top-right)
-  function drawBranch(ctx) {
-    var startX = W + 10, startY = -20;
-    ctx.save();
-    ctx.strokeStyle = 'rgba(90,50,40,0.35)';
-    ctx.lineCap = 'round';
-    // Main branch
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.moveTo(startX, startY);
-    ctx.bezierCurveTo(W-80, 40, W-200, 80, W-300, 130);
-    ctx.stroke();
-    // Sub-branch 1
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(W-160, 65);
-    ctx.bezierCurveTo(W-190, 90, W-220, 75, W-240, 50);
-    ctx.stroke();
-    // Sub-branch 2
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(W-100, 45);
-    ctx.bezierCurveTo(W-120, 85, W-150, 110, W-170, 140);
-    ctx.stroke();
-    // Sub-branch 3
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(W-230, 105);
-    ctx.bezierCurveTo(W-250, 130, W-280, 125, W-310, 110);
-    ctx.stroke();
-    // Twig
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.moveTo(W-60, 25);
-    ctx.bezierCurveTo(W-50, 55, W-65, 80, W-90, 100);
-    ctx.stroke();
-    ctx.restore();
-
-    // Blossoms on branch (5-petal flowers)
-    var blossomSpots = [
-      [W-280,120], [W-240,45], [W-200,75], [W-160,60],
-      [W-130,42], [W-100,90], [W-310,105], [W-170,135],
-      [W-85,95], [W-55,50], [W-230,100], [W-185,55]
-    ];
-    for (var b = 0; b < blossomSpots.length; b++) {
-      drawBlossom(ctx, blossomSpots[b][0], blossomSpots[b][1], 6 + Math.random()*4);
-    }
-  }
-
-  function drawBlossom(ctx, cx, cy, size) {
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(Math.random() * Math.PI);
-    var petals = 5;
-    for (var i = 0; i < petals; i++) {
-      ctx.save();
-      ctx.rotate((Math.PI*2/petals) * i);
-      ctx.beginPath();
-      ctx.ellipse(0, -size*0.6, size*0.35, size*0.6, 0, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(255,180,200,0.5)';
-      ctx.fill();
-      ctx.restore();
-    }
-    // Center
-    ctx.beginPath();
-    ctx.arc(0,0,size*0.18,0,Math.PI*2);
-    ctx.fillStyle = 'rgba(255,220,150,0.6)';
-    ctx.fill();
-    ctx.restore();
-  }
-
-  // Petal particle class
-  var petals = [];
-  function Petal(init) {
-    var src = petalCanvases[Math.floor(Math.random() * petalCanvases.length)];
-    this.canvas = src;
-
-    var t = Math.random();
-    if (t < 0.4) { this.w = 14 + Math.random() * 8; this.depth = 0.6; }
-    else if (t < 0.75) { this.w = 22 + Math.random() * 10; this.depth = 0.8; }
-    else { this.w = 30 + Math.random() * 12; this.depth = 1; }
-    this.h = this.w * 1.15;
-
-    this.x = init ? Math.random() * W : (W * 0.4 + Math.random() * W * 0.7);
-    this.y = init ? Math.random() * H : -(this.h + Math.random() * 200);
-
-    this.vy = (0.6 + Math.random() * 1.2) * this.depth;
-    this.vx = (-0.4 + Math.random() * 0.3) * this.depth;
-    this.swA = (0.4 + Math.random() * 1.0) * this.depth;
-    this.swF = 0.012 + Math.random() * 0.018;
-    this.swO = Math.random() * Math.PI * 2;
-
-    this.a = Math.random() * Math.PI * 2;
-    this.spin = (Math.random() - 0.5) * 0.03;
-    this.tilt = Math.random() * Math.PI * 2;
-    this.tiltS = 0.015 + Math.random() * 0.025;
-    this.flipAngle = Math.random() * Math.PI * 2;
-    this.flipSpeed = 0.008 + Math.random() * 0.02;
-
-    this.bOp = 0.45 + Math.random() * 0.35;
-    this.op = this.bOp;
-    this.life = 0;
-  }
-  Petal.prototype.respawn = function() { Petal.call(this, false); };
-
-  // 10 petals — gentle sparse look
-  for (var i = 0; i < 10; i++) petals.push(new Petal(true));
-
-  (function animate() {
-    ctx.clearRect(0, 0, W, H);
-
-    // Draw static elements
-    drawMoon(ctx);
-    drawBranch(ctx);
-
-    // Animate petals
-    for (var i = 0; i < petals.length; i++) {
-      var p = petals[i];
-      p.life++;
-      var sway = Math.sin(p.life * p.swF + p.swO) * p.swA;
-      p.x += p.vx + sway;
-      p.y += p.vy;
-      p.a += p.spin;
-      p.tilt += p.tiltS;
-      p.flipAngle += p.flipSpeed;
-      p.op = p.bOp + Math.sin(p.life * 0.02) * 0.08;
-
-      // Mouse scatter
-      var dx = p.x - mouse.x, dy = p.y - mouse.y;
-      var d = Math.sqrt(dx*dx + dy*dy);
-      if (d < 110 && d > 0) {
-        p.x += (dx/d) * 1.5;
-        p.y += (dy/d) * 0.8;
-        p.spin += (Math.random()-0.5) * 0.01;
-      }
-
-      if (p.y > H + p.h * 2 || p.x < -p.w * 3 || p.x > W + p.w * 3) {
-        p.respawn();
-      }
-
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.a);
-      var scX = Math.cos(p.tilt);
-      var scY = 0.6 + Math.abs(Math.cos(p.flipAngle)) * 0.4;
-      ctx.scale(scX, scY);
-      ctx.globalAlpha = Math.max(0.1, p.op * (0.5 + Math.abs(scX) * 0.5));
-      ctx.drawImage(p.canvas, -p.w/2, -p.h/2, p.w, p.h);
-      ctx.restore();
-    }
-    requestAnimationFrame(animate);
-  })();
-})();
+// ============ SAKURA BANNER (Banner.jpg) ============
+// No canvas animation — uses Banner.jpg image placed via HTML
 </script>
 </body>
 </html>

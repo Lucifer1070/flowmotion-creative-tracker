@@ -325,7 +325,7 @@ tbody tr.row-ready:hover{background:rgba(16,185,129,.18) !important}
 .cal-hdr{font-size:10px;color:var(--muted);font-weight:600;padding:4px 0;text-transform:uppercase}
 @media(max-width:900px){.sidebar{width:60px}.sidebar-brand,.nav-label,.status-summary h4,.status-item span:not(.count){display:none}.nav-item{justify-content:center;padding:12px}.nav-item .badge{display:none}}
 /* Purple floating particles */
-.sakura-banner{position:absolute;top:0;right:0;width:100%;height:auto;max-height:180px;object-fit:cover;object-position:right top;pointer-events:none;z-index:0;opacity:0.85}
+.particle-canvas{position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9999}
 /* Header light sweep */
 .topbar{position:relative;overflow:hidden}
 .topbar::after{content:'';position:absolute;top:0;left:-100%;width:60%;height:100%;background:linear-gradient(90deg,transparent,rgba(168,85,247,.06),rgba(168,85,247,.1),rgba(168,85,247,.06),transparent);animation:headerSweep 8s ease-in-out infinite;pointer-events:none}
@@ -372,6 +372,7 @@ tbody tr:hover{animation:rowGlowPulse 2s ease-in-out infinite}
 </head>
 <body>
 
+<canvas class="particle-canvas" id="particleCanvas"></canvas>
 
 <!-- Sidebar -->
 <div class="sidebar">
@@ -398,8 +399,7 @@ tbody tr:hover{animation:rowGlowPulse 2s ease-in-out infinite}
 </div>
 
 <!-- Main Content -->
-<div class="main" style="position:relative">
-  <img src="Banner.jpg" class="sakura-banner" alt="">
+<div class="main">
   <!-- Top Bar -->
   <div class="topbar">
     <div class="topbar-left" style="display:none"><h2 id="viewTitle"></h2><p id="viewSubtitle"></p></div>
@@ -420,7 +420,7 @@ tbody tr:hover{animation:rowGlowPulse 2s ease-in-out infinite}
   </div>
 
   <!-- Hero Banner with Game Cards -->
-  <div id="heroBanner" class="hero-banner" style="margin:8px 24px;border-radius:16px;overflow:visible;position:relative;background:linear-gradient(135deg,#1a0e35 0%,#2d1660 40%,#3b1a7a 70%,#1a0e35 100%);border:1px solid rgba(168,85,247,.2);display:none;flex-direction:column">
+  <div id="heroBanner" class="hero-banner" style="margin:8px 24px;border-radius:16px;overflow:visible;position:relative;background:url('Banner.jpg') center/cover no-repeat,linear-gradient(135deg,#1a0e35 0%,#2d1660 40%,#3b1a7a 70%,#1a0e35 100%);border:1px solid rgba(168,85,247,.2);display:none;flex-direction:column">
     <div style="position:absolute;inset:0;border-radius:16px;background:linear-gradient(90deg,rgba(12,6,24,.85) 0%,rgba(12,6,24,.4) 50%,rgba(12,6,24,.1) 100%);z-index:1"></div>
     <div style="position:relative;z-index:2;padding:14px 24px 0;display:flex;align-items:center;justify-content:space-between">
       <div>
@@ -3710,8 +3710,142 @@ function clearPreviews() {
   renderAIPreview();
 }
 
-// ============ SAKURA BANNER (Banner.jpg) ============
-// No canvas animation — uses Banner.jpg image placed via HTML
+// ============ FALLING PETAL IMAGES ============
+(function() {
+  var canvas = document.getElementById('particleCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var W, H;
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  var mouse = {x:-1000,y:-1000};
+  document.addEventListener('mousemove', function(e){mouse.x=e.clientX;mouse.y=e.clientY;});
+
+  var SRCS = ['petal1.png','petal2.png','petal3.png','petal4.png','petal5.png','petal6.png'];
+  var cleanImages = [];
+  var loadCount = 0;
+
+  function removeBlack(img) {
+    var c = document.createElement('canvas');
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    var x = c.getContext('2d');
+    x.drawImage(img, 0, 0);
+    var d = x.getImageData(0, 0, c.width, c.height);
+    var px = d.data;
+    for (var i = 0; i < px.length; i += 4) {
+      var bright = Math.max(px[i], px[i+1], px[i+2]);
+      if (bright < 30) {
+        px[i+3] = 0;
+      } else if (bright < 80) {
+        px[i+3] = Math.floor((bright - 30) / 50 * px[i+3]);
+      }
+    }
+    x.putImageData(d, 0, 0);
+    return c;
+  }
+
+  SRCS.forEach(function(src) {
+    var img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+      cleanImages.push({canvas: removeBlack(img), w: img.naturalWidth, h: img.naturalHeight});
+      loadCount++;
+      if (loadCount === SRCS.length) go();
+    };
+    img.onerror = function() {
+      loadCount++;
+      if (loadCount === SRCS.length) go();
+    };
+    img.src = src;
+  });
+
+  function go() {
+    if (cleanImages.length === 0) return;
+    var petals = [];
+
+    function Petal(init) {
+      var src = cleanImages[Math.floor(Math.random() * cleanImages.length)];
+      this.canvas = src.canvas;
+      this.ar = src.w / src.h;
+
+      var t = Math.random();
+      if (t < 0.4) { this.w = 18 + Math.random() * 10; this.depth = 0.6; }
+      else if (t < 0.75) { this.w = 28 + Math.random() * 12; this.depth = 0.8; }
+      else { this.w = 38 + Math.random() * 14; this.depth = 1; }
+      this.h = this.w / this.ar;
+
+      this.x = Math.random() * W;
+      this.y = init ? Math.random() * H : -(this.h + Math.random() * 150);
+
+      this.vy = (1.2 + Math.random() * 1.8) * this.depth;
+      this.vx = (-0.3 + Math.random() * 0.6) * this.depth;
+      this.swA = (0.5 + Math.random() * 1.2) * this.depth;
+      this.swF = 0.015 + Math.random() * 0.02;
+      this.swO = Math.random() * Math.PI * 2;
+
+      this.a = Math.random() * Math.PI * 2;
+      this.spin = (Math.random() - 0.5) * 0.04;
+      this.tilt = Math.random() * Math.PI * 2;
+      this.tiltS = 0.02 + Math.random() * 0.03;
+      this.flipAngle = Math.random() * Math.PI * 2;
+      this.flipSpeed = 0.01 + Math.random() * 0.025;
+
+      this.bOp = 0.6 + Math.random() * 0.35;
+      this.op = this.bOp;
+      this.life = 0;
+    }
+
+    Petal.prototype.respawn = function() {
+      Petal.call(this, false);
+    };
+
+    for (var i = 0; i < 8; i++) petals.push(new Petal(true));
+
+    (function animate() {
+      ctx.clearRect(0, 0, W, H);
+
+      for (var i = 0; i < petals.length; i++) {
+        var p = petals[i];
+        p.life++;
+
+        var sway = Math.sin(p.life * p.swF + p.swO) * p.swA;
+        p.x += p.vx + sway;
+        p.y += p.vy;
+
+        p.a += p.spin;
+        p.tilt += p.tiltS;
+        p.flipAngle += p.flipSpeed;
+
+        p.op = p.bOp + Math.sin(p.life * 0.02) * 0.08;
+
+        var dx = p.x - mouse.x, dy = p.y - mouse.y;
+        var d = Math.sqrt(dx*dx + dy*dy);
+        if (d < 110 && d > 0) {
+          p.x += (dx/d) * 1.5;
+          p.y += (dy/d) * 0.8;
+          p.spin += (Math.random()-0.5) * 0.01;
+        }
+
+        if (p.y > H + p.h * 2 || p.x < -p.w * 3 || p.x > W + p.w * 3) {
+          p.respawn();
+        }
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.a);
+        var scX = Math.cos(p.tilt);
+        var scY = 0.6 + Math.abs(Math.cos(p.flipAngle)) * 0.4;
+        ctx.scale(scX, scY);
+        ctx.globalAlpha = Math.max(0.15, p.op * (0.5 + Math.abs(scX) * 0.5));
+        ctx.drawImage(p.canvas, -p.w/2, -p.h/2, p.w, p.h);
+        ctx.restore();
+      }
+      requestAnimationFrame(animate);
+    })();
+  }
+})();
 </script>
 </body>
 </html>
